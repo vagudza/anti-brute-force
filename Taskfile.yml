@@ -1,0 +1,40 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  # Go env.
+  GOBIN: $(pwd)/bin
+  DB_CONFIG_PATH: config/app/dbconfig.yaml
+
+  # Lib versions.
+  GOMOCK_VERSION: v0.3.4
+  GOLANGCI_LINT_VERSION: v1.61.0
+  GOFUMPT_VERSION: v0.7.0
+  SQL_MIGRATE_VERSION: v1.2.0
+
+tasks:
+  install-tools:
+    desc: "install tools"
+    cmds:
+      - GOBIN={{.GOBIN}} go install -v github.com/matryer/moq@{{.GOMOCK_VERSION}}
+      - GOBIN={{.GOBIN}} go install -v github.com/golangci/golangci-lint/cmd/golangci-lint@{{.GOLANGCI_LINT_VERSION}}
+      - GOBIN={{.GOBIN}} go install -v mvdan.cc/gofumpt@{{.GOFUMPT_VERSION}}
+      - GOBIN={{.GOBIN}} go install -v github.com/rubenv/sql-migrate/...@{{.SQL_MIGRATE_VERSION}}
+    silent: true
+
+  migrations-new:
+    desc: "create a new migration"
+    aliases: [ migrations-new ]
+    deps: [ install-tools ]
+    cmds:
+      - |
+        {{.GOBIN}}/sql-migrate new -config={{.DB_CONFIG_PATH}} -env="development" {{.CLI_ARGS}}
+
+  migrations-up:
+    desc: "apply all migrations"
+    aliases: [ migrations-up ]
+    deps: [ install-tools ]
+    cmds:
+      - |
+        {{.GOBIN}}/sql-migrate up -config={{.DB_CONFIG_PATH}} -env="development"

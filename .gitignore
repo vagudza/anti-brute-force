@@ -40,14 +40,3 @@ __debug_*
 
 ### Golang ###
 /vendor
-
-### Test artifacts ###
-/test/loans/allure-results
-/test/engine/allure-results
-/test/allure-results
-
-# Helm dependencies
-/deployments/helm/engine/engine/charts/
-/deployments/helm/engine/engine/Chart.lock
-/deployments/helm/engine/migrator/charts/
-/deployments/helm/engine/migrator/Chart.lock

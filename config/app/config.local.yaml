@@ -1,0 +1,10 @@
+env: "docker"
+postgres:
+  database: anti-brute-force
+  username: anti-brute-force
+  password: anti-brute-force
+  host: localhost
+  port: 5432
+  sslmode: disable
+grpc:
+  port: 13013
