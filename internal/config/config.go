@@ -5,6 +5,7 @@ import "github.com/ilyakaznacheev/cleanenv"
 type AppConfig struct {
 	Env      string     `yaml:"env" env:"ENV"`
 	Limiters Limiters   `yaml:"limiters" env-prefix:"LIMITERS_"`
+	Postgres PGConfig   `yaml:"postgres" env-prefix:"POSTGRES_"`
 	Grpc     GrpcConfig `yaml:"grpc"`
 }
 

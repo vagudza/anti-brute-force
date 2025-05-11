@@ -59,6 +59,14 @@ tasks:
       - |
         {{.GOBIN}}/sql-migrate up -config={{.DB_CONFIG_PATH}} -env="development"
 
+  migrations-down:
+    desc: "undo the last applied migration"
+    aliases: [ migrations-up ]
+    deps: [ install-tools ]
+    cmds:
+      - |
+        {{.GOBIN}}/sql-migrate down -config={{.DB_CONFIG_PATH}} -env="development"
+
   test:
     desc: "run unit tests"
     cmds:

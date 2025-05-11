@@ -12,12 +12,6 @@ import (
 
 const cleanupInterval = 5 * time.Minute
 
-type Limiter interface {
-	Allow(ctx context.Context, key string) (bool, error)
-	Reset(ctx context.Context, key string) error
-	Close(ctx context.Context) error
-}
-
 type MemoryBucketStorage struct {
 	logger          *zap.Logger
 	buckets         map[string]*LeakyBucket

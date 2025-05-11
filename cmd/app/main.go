@@ -13,6 +13,7 @@ import (
 	"github.com/vagudza/anti-brute-force/internal/app"
 	"github.com/vagudza/anti-brute-force/internal/bucket"
 	"github.com/vagudza/anti-brute-force/internal/config"
+	"github.com/vagudza/anti-brute-force/internal/storage"
 	"github.com/vagudza/anti-brute-force/internal/transport/grpc"
 )
 
@@ -39,6 +40,11 @@ func main() {
 		logger.Fatal("Failed to create config", zap.Error(err))
 	}
 
+	pgStorage, err := storage.NewStorage(ctx, &cfg.Postgres)
+	if err != nil {
+		logger.Fatal("Failed to create storage", zap.Error(err))
+	}
+
 	loginBuckets := bucket.NewMemoryBucketStorage(&cfg.Limiters.Login, logger)
 	passwordBuckets := bucket.NewMemoryBucketStorage(&cfg.Limiters.Password, logger)
 	ipBuckets := bucket.NewMemoryBucketStorage(&cfg.Limiters.IP, logger)
@@ -63,7 +69,7 @@ func main() {
 		logger.Info("Resources closed properly")
 	}()
 
-	service := app.NewService(loginBuckets, passwordBuckets, ipBuckets)
+	service := app.NewService(logger, loginBuckets, passwordBuckets, ipBuckets, pgStorage)
 	srv := grpc.NewServer(service, &cfg.Grpc)
 
 	errCh := make(chan error, 1)

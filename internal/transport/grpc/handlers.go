@@ -53,6 +53,38 @@ func (s *Server) ResetBucket(ctx context.Context, req *pb.ResetBucketRequest) (*
 	return &pb.EmptyResponse{}, nil
 }
 
+func (s *Server) AddToBlacklist(ctx context.Context, req *pb.IPSubnetRequest) (*pb.EmptyResponse, error) {
+	if err := s.limiterService.AddToBlacklist(ctx, req.Subnet); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &pb.EmptyResponse{}, nil
+}
+
+func (s *Server) RemoveFromBlacklist(ctx context.Context, req *pb.IPSubnetRequest) (*pb.EmptyResponse, error) {
+	if err := s.limiterService.RemoveFromBlacklist(ctx, req.Subnet); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &pb.EmptyResponse{}, nil
+}
+
+func (s *Server) AddToWhitelist(ctx context.Context, req *pb.IPSubnetRequest) (*pb.EmptyResponse, error) {
+	if err := s.limiterService.AddToWhitelist(ctx, req.Subnet); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &pb.EmptyResponse{}, nil
+}
+
+func (s *Server) RemoveFromWhitelist(ctx context.Context, req *pb.IPSubnetRequest) (*pb.EmptyResponse, error) {
+	if err := s.limiterService.RemoveFromWhitelist(ctx, req.Subnet); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &pb.EmptyResponse{}, nil
+}
+
 func mapCheckAuthErrors(err error) error {
 	switch {
 	case errors.Is(err, app.ErrEmptyLogin), errors.Is(err, app.ErrEmptyPassword), errors.Is(err, app.ErrEmptyIP):

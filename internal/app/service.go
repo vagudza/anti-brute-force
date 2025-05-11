@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"go.uber.org/zap"
+
 	"github.com/vagudza/anti-brute-force/internal/bucket"
 )
 
@@ -21,6 +23,7 @@ type LimiterService interface {
 
 // Service представляет основную бизнес-логику приложения
 type Service struct {
+	logger          *zap.Logger
 	loginBuckets    bucket.Limiter
 	passwordBuckets bucket.Limiter
 	ipBuckets       bucket.Limiter
@@ -30,6 +33,7 @@ type Service struct {
 
 // NewService создает новый экземпляр сервиса
 func NewService(
+	logger *zap.Logger,
 	loginBuckets bucket.Limiter,
 	passwordBuckets bucket.Limiter,
 	ipBuckets bucket.Limiter,
@@ -37,6 +41,7 @@ func NewService(
 	// blacklist iplist.IPList,
 ) *Service {
 	return &Service{
+		logger:          logger,
 		loginBuckets:    loginBuckets,
 		passwordBuckets: passwordBuckets,
 		ipBuckets:       ipBuckets,
