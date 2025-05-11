@@ -10,10 +10,10 @@ import (
 
 	"go.uber.org/zap"
 
-	"anti-brutforce/internal/app"
-	"anti-brutforce/internal/bucket"
-	"anti-brutforce/internal/config"
-	"anti-brutforce/internal/transport/grpc"
+	"github.com/vagudza/anti-brute-force/internal/app"
+	"github.com/vagudza/anti-brute-force/internal/bucket"
+	"github.com/vagudza/anti-brute-force/internal/config"
+	"github.com/vagudza/anti-brute-force/internal/transport/grpc"
 )
 
 func main() {
@@ -39,20 +39,32 @@ func main() {
 		logger.Fatal("Failed to create config", zap.Error(err))
 	}
 
-	loginBuckets := bucket.NewMemoryBucketStorage(&cfg.Limiter.Login, logger)
-	passwordBuckets := bucket.NewMemoryBucketStorage(&cfg.Limiter.Password, logger)
-	ipBuckets := bucket.NewMemoryBucketStorage(&cfg.Limiter.IP, logger)
+	loginBuckets := bucket.NewMemoryBucketStorage(&cfg.Limiters.Login, logger)
+	passwordBuckets := bucket.NewMemoryBucketStorage(&cfg.Limiters.Password, logger)
+	ipBuckets := bucket.NewMemoryBucketStorage(&cfg.Limiters.IP, logger)
 
 	defer func() {
 		logger.Info("Closing resources...")
-		loginBuckets.Close()
-		passwordBuckets.Close()
-		ipBuckets.Close()
+		err = loginBuckets.Close(ctx)
+		if err != nil {
+			logger.Error("Failed to close login buckets", zap.Error(err))
+		}
+
+		err = passwordBuckets.Close(ctx)
+		if err != nil {
+			logger.Error("Failed to close password buckets", zap.Error(err))
+		}
+
+		err = ipBuckets.Close(ctx)
+		if err != nil {
+			logger.Error("Failed to close IP buckets", zap.Error(err))
+		}
+
 		logger.Info("Resources closed properly")
 	}()
 
 	service := app.NewService(loginBuckets, passwordBuckets, ipBuckets)
-	srv := grpc.NewServer(service, cfg.Grpc.Port)
+	srv := grpc.NewServer(service, &cfg.Grpc)
 
 	errCh := make(chan error, 1)
 	go func() {
@@ -64,7 +76,7 @@ func main() {
 
 	// Ожидаем либо ошибки при запуске, либо сигнала завершения
 	select {
-	case err := <-errCh:
+	case err = <-errCh:
 		logger.Error("Server failed", zap.Error(err))
 	case <-ctx.Done():
 		logger.Info("Shutdown signal received")

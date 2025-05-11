@@ -23,6 +23,26 @@ tasks:
       - GOBIN={{.GOBIN}} go install -v github.com/rubenv/sql-migrate/...@{{.SQL_MIGRATE_VERSION}}
     silent: true
 
+  fmt:
+    desc: "format code"
+    deps: [ install-tools ]
+    cmds:
+      - |
+        {{.GOBIN}}/gofumpt -w -l .
+
+  lint:
+    desc: "lint code"
+    deps: [ install-tools ]
+    cmds:
+      - |
+        {{.GOBIN}}/golangci-lint run --timeout 2m --fix --concurrency 4 ./...
+
+  pretty:
+    desc: "prettify code in engine and loans"
+    cmds:
+      - task: fmt
+      - task: lint
+
   migrations-new:
     desc: "create a new migration"
     aliases: [ migrations-new ]
@@ -38,3 +58,18 @@ tasks:
     cmds:
       - |
         {{.GOBIN}}/sql-migrate up -config={{.DB_CONFIG_PATH}} -env="development"
+
+  test:
+    desc: "run unit tests"
+    cmds:
+      - go clean --testcache
+      - go test -race `go list ./... | grep -v test/` -coverprofile=.coverage.out
+      - go tool cover -func=.coverage.out | tail -n1
+
+  proto-gen:
+    desc: "generate proto files"
+    cmds:
+      - |
+        protoc --go_out=. --go_opt=paths=source_relative \
+        --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+        api/proto/antibruteforce.proto

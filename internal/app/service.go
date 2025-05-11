@@ -2,13 +2,22 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
-	"google.golang.org/grpc"
-
-	"anti-brutforce/internal/bucket"
-	"anti-brutforce/internal/entity"
+	"github.com/vagudza/anti-brute-force/internal/bucket"
 )
+
+var (
+	ErrEmptyLogin    = errors.New("empty login")
+	ErrEmptyPassword = errors.New("empty password")
+	ErrEmptyIP       = errors.New("empty IP")
+)
+
+type LimiterService interface {
+	CheckAuth(ctx context.Context, login, password, ip string) (bool, error)
+	ResetBucket(ctx context.Context, login, ip string) error
+}
 
 // Service представляет основную бизнес-логику приложения
 type Service struct {
@@ -36,18 +45,10 @@ func NewService(
 	}
 }
 
-func (s *Service) Register(srv *grpc.Server) {
-	// statementv1.RegisterStatementServiceServer(srv, s)
-}
-
 // CheckAuth проверяет попытку авторизации
-func (s *Service) CheckAuth(req *entity.AuthRequest) (*entity.AuthResponse, error) {
-	if req == nil {
-		return nil, fmt.Errorf("request is nil")
-	}
-
-	if req.Login == "" || req.Password == "" || req.IP == "" {
-		return nil, fmt.Errorf("login, password and IP must be provided")
+func (s *Service) CheckAuth(ctx context.Context, login, password, ip string) (bool, error) {
+	if err := validateCheckAuth(login, password, ip); err != nil {
+		return false, err
 	}
 
 	// Парсим IP
@@ -75,52 +76,46 @@ func (s *Service) CheckAuth(req *entity.AuthRequest) (*entity.AuthResponse, erro
 	// 	return &models.AuthResponse{OK: false}, nil
 	// }
 
-	// Проверяем ограничения по логину
-	loginAllowed, err := s.loginBuckets.Allow(req.Login)
+	loginAllowed, err := s.loginBuckets.Allow(ctx, login)
 	if err != nil {
-		return nil, fmt.Errorf("login check error: %w", err)
+		return false, fmt.Errorf("login check error: %w", err)
 	}
 
 	if !loginAllowed {
-		return &entity.AuthResponse{OK: false}, nil
+		return false, nil
 	}
 
-	// Проверяем ограничения по паролю
-	passwordAllowed, err := s.passwordBuckets.Allow(req.Password)
+	passwordAllowed, err := s.passwordBuckets.Allow(ctx, password)
 	if err != nil {
-		return nil, fmt.Errorf("password check error: %w", err)
+		return false, fmt.Errorf("password check error: %w", err)
 	}
 
 	if !passwordAllowed {
-		return &entity.AuthResponse{OK: false}, nil
+		return false, nil
 	}
 
-	// Проверяем ограничения по IP
-	ipAllowed, err := s.ipBuckets.Allow(req.IP)
+	ipAllowed, err := s.ipBuckets.Allow(ctx, ip)
 	if err != nil {
-		return nil, fmt.Errorf("IP check error: %w", err)
+		return false, fmt.Errorf("IP check error: %w", err)
 	}
 
 	if !ipAllowed {
-		return &entity.AuthResponse{OK: false}, nil
+		return false, nil
 	}
 
-	// Все проверки пройдены
-	return &entity.AuthResponse{OK: true}, nil
+	return true, nil
 }
 
 // ResetBucket сбрасывает bucket для указанного логина и IP
 func (s *Service) ResetBucket(ctx context.Context, login, ip string) error {
 	if login != "" {
-		loginKey := fmt.Sprintf("login:%s", login)
-		if err := s.loginBuckets.Reset(loginKey); err != nil {
+		if err := s.loginBuckets.Reset(ctx, login); err != nil {
 			return fmt.Errorf("login bucket reset error: %w", err)
 		}
 	}
 
 	if ip != "" {
-		ipKey := fmt.Sprintf("ip:%s", ip)
-		if err := s.ipBuckets.Reset(ipKey); err != nil {
+		if err := s.ipBuckets.Reset(ctx, ip); err != nil {
 			return fmt.Errorf("IP bucket reset error: %w", err)
 		}
 	}
@@ -148,3 +143,19 @@ func (s *Service) ResetBucket(ctx context.Context, login, ip string) error {
 // func (s *Service) RemoveFromWhitelist(ctx context.Context, subnet *net.IPNet) error {
 // 	return s.whitelist.Remove(ctx, subnet)
 // }
+
+func validateCheckAuth(login, password, ip string) error {
+	if login == "" {
+		return ErrEmptyLogin
+	}
+
+	if password == "" {
+		return ErrEmptyPassword
+	}
+
+	if ip == "" {
+		return ErrEmptyIP
+	}
+
+	return nil
+}

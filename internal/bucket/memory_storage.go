@@ -1,15 +1,22 @@
 package bucket
 
 import (
+	"context"
 	"sync"
 	"time"
 
 	"go.uber.org/zap"
 
-	"anti-brutforce/internal/config"
+	"github.com/vagudza/anti-brute-force/internal/config"
 )
 
 const cleanupInterval = 5 * time.Minute
+
+type Limiter interface {
+	Allow(ctx context.Context, key string) (bool, error)
+	Reset(ctx context.Context, key string) error
+	Close(ctx context.Context) error
+}
 
 type MemoryBucketStorage struct {
 	logger          *zap.Logger
@@ -39,7 +46,7 @@ func NewMemoryBucketStorage(cfg *config.LimiterConfig, logger *zap.Logger) *Memo
 	return storage
 }
 
-func (s *MemoryBucketStorage) Allow(key string) (bool, error) {
+func (s *MemoryBucketStorage) Allow(_ context.Context, key string) (bool, error) {
 	s.mu.Lock()
 	bucket, exists := s.buckets[key]
 	if !exists {
@@ -51,7 +58,7 @@ func (s *MemoryBucketStorage) Allow(key string) (bool, error) {
 	return bucket.Add(), nil
 }
 
-func (s *MemoryBucketStorage) Reset(key string) error {
+func (s *MemoryBucketStorage) Reset(_ context.Context, key string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -59,6 +66,11 @@ func (s *MemoryBucketStorage) Reset(key string) error {
 		bucket.Reset()
 	}
 
+	return nil
+}
+
+func (s *MemoryBucketStorage) Close(_ context.Context) error {
+	close(s.stopCleanup)
 	return nil
 }
 
@@ -93,8 +105,4 @@ func (s *MemoryBucketStorage) removeStale() {
 			delete(s.buckets, key)
 		}
 	}
-}
-
-func (s *MemoryBucketStorage) Close() {
-	close(s.stopCleanup)
 }

@@ -7,39 +7,37 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+
+	pb "github.com/vagudza/anti-brute-force/api/proto"
+	"github.com/vagudza/anti-brute-force/internal/app"
+	"github.com/vagudza/anti-brute-force/internal/config"
 )
 
 // Server представляет собой обертку над gRPC сервером
 type Server struct {
-	server   *grpc.Server
-	listener net.Listener
-	port     string
-}
+	server         *grpc.Server
+	listener       net.Listener
+	cfg            *config.GrpcConfig
+	limiterService app.LimiterService
 
-// Service интерфейс, который должны реализовывать все gRPC сервисы
-type Service interface {
-	Register(*grpc.Server)
+	pb.UnimplementedAntiBruteforceServer
 }
 
 // NewServer создает новый gRPC сервер
-func NewServer(service Service, port string) *Server {
-	server := grpc.NewServer()
-
-	// Регистрируем сервис в gRPC сервере
-	service.Register(server)
-
-	// Включаем reflection API для упрощения отладки с помощью таких инструментов, как grpcurl
-	reflection.Register(server)
-
-	return &Server{
-		server: server,
-		port:   port,
+func NewServer(limiterService app.LimiterService, cfg *config.GrpcConfig) *Server {
+	s := &Server{
+		server:         grpc.NewServer(),
+		cfg:            cfg,
+		limiterService: limiterService,
 	}
+	pb.RegisterAntiBruteforceServer(s.server, s)
+	reflection.Register(s.server)
+	return s
 }
 
 // Start запускает gRPC сервер на указанном адресе
 func (s *Server) Start() error {
-	listener, err := net.Listen("tcp", s.port)
+	listener, err := net.Listen("tcp", s.cfg.Port)
 	if err != nil {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
