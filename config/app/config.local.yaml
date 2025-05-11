@@ -1,10 +1,18 @@
 env: "docker"
-postgres:
-  database: anti-brute-force
-  username: anti-brute-force
-  password: anti-brute-force
-  host: localhost
-  port: 5432
-  sslmode: disable
+
+limiters:
+  login:
+    maxAttemptsPerMinute: 10
+    cleanupInterval: 1m
+    ttl: 1h
+  password:
+    maxAttemptsPerMinute: 100
+    cleanupInterval: 1m
+    ttl: 1h
+  ip:
+    maxAttemptsPerMinute: 1000
+    cleanupInterval: 1m
+    ttl: 1h
+
 grpc:
   port: 13013

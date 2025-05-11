@@ -3,7 +3,9 @@ package config
 import "github.com/ilyakaznacheev/cleanenv"
 
 type AppConfig struct {
-	Postgres PGConfig `yaml:"postgres"`
+	Env      string     `yaml:"env" env:"ENV"`
+	Limiters Limiters   `yaml:"limiters" env-prefix:"LIMITERS_"`
+	Grpc     GrpcConfig `yaml:"grpc"`
 }
 
 func New() (*AppConfig, error) {

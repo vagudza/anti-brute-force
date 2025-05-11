@@ -1,76 +1,61 @@
 package bucket
 
 import (
-	"math"
 	"sync"
 	"time"
 )
 
-type key struct {
-	ip           string
-	login        string
-	passwordHash string
+type LeakyBucket struct {
+	capacity     int
+	leakRate     float64   // speed of leak in tokens/sec
+	tokens       float64   // текущее количество токенов в ведре
+	lastLeakTime time.Time // время последней "утечки"
+	mu           sync.Mutex
 }
 
-type state struct {
-	currentLevel float64   // tokens in bucket at the last update moment
-	lastLeakTime time.Time // time of the last update
-}
-
-type Service struct {
-	bucketsMap map[key]state
-	mu         sync.Mutex
-}
-
-func NewService() *Service {
-	return &Service{
-		bucketsMap: make(map[key]state),
+func NewLeakyBucket(capacity int, leakRate float64) *LeakyBucket {
+	return &LeakyBucket{
+		capacity:     capacity,
+		leakRate:     leakRate,
+		tokens:       0,
+		lastLeakTime: time.Now(),
 	}
 }
 
-func (s *Service) CheckAuthAttempt(login, passwordHash, ip string) bool {
-	limits := []struct {
-		key   key
-		limit int
-	}{
-		{key{login: login}, 10},                // 10/мин для логина
-		{key{passwordHash: passwordHash}, 100}, // 100/мин для пароля
-		{key{ip: ip}, 1000},                    // 1000/мин для IP
-	}
-
-	for _, l := range limits {
-		leakRate := float64(l.limit) / 60 // Конвертируем в токены/секунду
-		if !s.isAllowed(l.key, l.limit, leakRate) {
-			return false
-		}
-	}
-	return true
-}
-
-func (s *Service) isAllowed(bucketKey key, capacity int, leakRatePerSec float64) bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+// Add добавляет токен в bucket и проверяет, не превышен ли лимит
+func (b *LeakyBucket) Add() bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
 
 	now := time.Now()
-	info, exists := s.bucketsMap[bucketKey]
 
-	if !exists {
-		info = state{
-			lastLeakTime: now,
-			currentLevel: 1, // put 1 token for the first attempt
-		}
-	} else {
-		elapsed := now.Sub(info.lastLeakTime).Seconds()
-		leaked := elapsed * leakRatePerSec                        // count of leaked tokens for the elapsed time
-		info.currentLevel = math.Max(0, info.currentLevel-leaked) // guarantee that current level is not negative
-		info.lastLeakTime = now
+	// Рассчитываем сколько токенов "утекло" с момента последнего обращения
+	elapsed := now.Sub(b.lastLeakTime).Seconds()
+	leak := elapsed * b.leakRate // количество токенов, которые "утекли" за это время
+
+	// Обновляем состояние ведра
+	b.tokens = b.tokens - leak
+	if b.tokens < 0 {
+		b.tokens = 0
 	}
 
-	if info.currentLevel < float64(capacity) {
-		info.currentLevel++ // put 1 token in bucket (for the current attempt)
-		s.bucketsMap[bucketKey] = info
+	b.lastLeakTime = now
+
+	// Проверяем, можно ли добавить 1 новый запрос
+	if b.tokens+1 <= float64(b.capacity) {
+		b.tokens++
 		return true
 	}
 
+	// Ведро переполнено, запрос отклоняется
 	return false
+}
+
+// Reset сбрасывает состояние bucket
+func (b *LeakyBucket) Reset() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	b.tokens = 0
+	b.lastLeakTime = time.Now()
 }
