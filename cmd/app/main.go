@@ -69,7 +69,7 @@ func main() {
 		logger.Info("Resources closed properly")
 	}()
 
-	service := app.NewService(logger, loginBuckets, passwordBuckets, ipBuckets, pgStorage)
+	service := app.NewService(logger, loginBuckets, passwordBuckets, ipBuckets)
 	srv := grpc.NewServer(service, &cfg.Grpc)
 
 	errCh := make(chan error, 1)
