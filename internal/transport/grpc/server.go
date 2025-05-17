@@ -13,7 +13,6 @@ import (
 	"github.com/vagudza/anti-brute-force/internal/config"
 )
 
-// Server представляет собой обертку над gRPC сервером
 type Server struct {
 	server         *grpc.Server
 	listener       net.Listener
@@ -23,7 +22,6 @@ type Server struct {
 	pb.UnimplementedAntiBruteforceServer
 }
 
-// NewServer создает новый gRPC сервер
 func NewServer(limiterService app.LimiterService, cfg *config.GrpcConfig) *Server {
 	s := &Server{
 		server:         grpc.NewServer(),
@@ -37,24 +35,20 @@ func NewServer(limiterService app.LimiterService, cfg *config.GrpcConfig) *Serve
 
 // Start запускает gRPC сервер на указанном адресе
 func (s *Server) Start() error {
-	listener, err := net.Listen("tcp", s.cfg.Port)
+	listener, err := net.Listen("tcp", ":"+s.cfg.Port)
 	if err != nil {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
 
 	s.listener = listener
-
-	// Запускаем gRPC сервер
-	if err := s.server.Serve(listener); err != nil {
+	if err = s.server.Serve(listener); err != nil {
 		return fmt.Errorf("failed to serve: %v", err)
 	}
 
 	return nil
 }
 
-// Stop останавливает gRPC сервер с грациозным завершением
 func (s *Server) Stop(ctx context.Context) error {
-	// Создаем канал для отслеживания завершения остановки
 	stopped := make(chan struct{})
 
 	go func() {
@@ -62,14 +56,11 @@ func (s *Server) Stop(ctx context.Context) error {
 		close(stopped)
 	}()
 
-	// Ожидаем либо завершения остановки, либо истечения таймаута
 	select {
 	case <-ctx.Done():
-		// Если контекст истек, принудительно останавливаем сервер
 		s.server.Stop()
 		return fmt.Errorf("server shutdown timed out")
 	case <-stopped:
-		// Сервер успешно остановлен
 		return nil
 	}
 }

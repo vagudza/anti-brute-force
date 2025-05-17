@@ -13,6 +13,7 @@ import (
 	"github.com/vagudza/anti-brute-force/internal/app"
 	"github.com/vagudza/anti-brute-force/internal/bucket"
 	"github.com/vagudza/anti-brute-force/internal/config"
+	"github.com/vagudza/anti-brute-force/internal/iplist"
 	"github.com/vagudza/anti-brute-force/internal/storage"
 	"github.com/vagudza/anti-brute-force/internal/transport/grpc"
 )
@@ -69,7 +70,14 @@ func main() {
 		logger.Info("Resources closed properly")
 	}()
 
-	service := app.NewService(logger, loginBuckets, passwordBuckets, ipBuckets)
+	ipListService := iplist.NewService(pgStorage)
+	service := app.NewService(
+		logger,
+		loginBuckets,
+		passwordBuckets,
+		ipBuckets,
+		ipListService,
+	)
 	srv := grpc.NewServer(service, &cfg.Grpc)
 
 	errCh := make(chan error, 1)
@@ -80,7 +88,6 @@ func main() {
 		}
 	}()
 
-	// Ожидаем либо ошибки при запуске, либо сигнала завершения
 	select {
 	case err = <-errCh:
 		logger.Error("Server failed", zap.Error(err))

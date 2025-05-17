@@ -5,6 +5,7 @@ version: '3'
 vars:
   # Go env.
   GOBIN: $(pwd)/bin
+  CONFIG_PATH: config/app/config.yaml
   DB_CONFIG_PATH: config/app/dbconfig.yaml
 
   # Lib versions.
@@ -66,6 +67,21 @@ tasks:
     cmds:
       - |
         {{.GOBIN}}/sql-migrate down -config={{.DB_CONFIG_PATH}} -env="development"
+
+  infra-up:
+    desc: "start postgres container"
+    aliases: [ infra-up ]
+    cmds:
+      - |
+        docker compose -f deployments/docker-compose/docker-compose.local.yml up --remove-orphans --detach --wait {{.CLI_ARGS}}
+
+  run-app:
+    desc: "start app for isolation tests"
+    aliases: [ run-service ]
+    cmds:
+      - |
+        CONFIG_PATH={{.CONFIG_PATH}} \
+        go run cmd/app/main.go
 
   test:
     desc: "run unit tests"

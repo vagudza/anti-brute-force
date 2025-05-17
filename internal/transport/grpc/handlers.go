@@ -9,27 +9,8 @@ import (
 
 	pb "github.com/vagudza/anti-brute-force/api/proto"
 	"github.com/vagudza/anti-brute-force/internal/app"
+	"github.com/vagudza/anti-brute-force/internal/iplist"
 )
-
-// type AntiBruteforceServer interface {
-// 	// CheckAuth verifies an authentication attempt
-// 	CheckAuth(context.Context, *CheckAuthRequest) (*CheckAuthResponse, error)
-// 	// ResetBucket resets the bucket by login and IP
-// 	ResetBucket(context.Context, *ResetBucketRequest) (*EmptyResponse, error)
-// 	// AddToBlacklist adds a subnet to the blacklist
-// 	AddToBlacklist(context.Context, *IPSubnetRequest) (*EmptyResponse, error)
-// 	// RemoveFromBlacklist removes a subnet from the blacklist
-// 	RemoveFromBlacklist(context.Context, *IPSubnetRequest) (*EmptyResponse, error)
-// 	// AddToWhitelist adds a subnet to the whitelist
-// 	AddToWhitelist(context.Context, *IPSubnetRequest) (*EmptyResponse, error)
-// 	// RemoveFromWhitelist removes a subnet from the whitelist
-// 	RemoveFromWhitelist(context.Context, *IPSubnetRequest) (*EmptyResponse, error)
-// 	// GetBlacklist retrieves all subnets from the blacklist
-// 	GetBlacklist(context.Context, *EmptyRequest) (*IPSubnetListResponse, error)
-// 	// GetWhitelist retrieves all subnets from the whitelist
-// 	GetWhitelist(context.Context, *EmptyRequest) (*IPSubnetListResponse, error)
-// 	mustEmbedUnimplementedAntiBruteforceServer()
-// }
 
 func (s *Server) CheckAuth(ctx context.Context, req *pb.CheckAuthRequest) (*pb.CheckAuthResponse, error) {
 	authAllowed, err := s.limiterService.CheckAuth(ctx, req.Login, req.Password, req.Ip)
@@ -87,8 +68,16 @@ func (s *Server) RemoveFromWhitelist(ctx context.Context, req *pb.IPSubnetReques
 
 func mapCheckAuthErrors(err error) error {
 	switch {
-	case errors.Is(err, app.ErrEmptyLogin), errors.Is(err, app.ErrEmptyPassword), errors.Is(err, app.ErrEmptyIP):
+	case errors.Is(err, app.ErrEmptyLogin),
+		errors.Is(err, app.ErrEmptyPassword),
+		errors.Is(err, app.ErrEmptyIP),
+		errors.Is(err, app.ErrInvalidIP):
 		return status.Error(codes.InvalidArgument, err.Error())
+
+	case errors.Is(err, iplist.ErrInvalidIP),
+		errors.Is(err, iplist.ErrInvalidSubnet):
+		return status.Error(codes.InvalidArgument, err.Error())
+
 	default:
 		return status.Error(codes.Internal, err.Error())
 	}

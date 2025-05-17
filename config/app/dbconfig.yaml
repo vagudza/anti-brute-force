@@ -1,5 +1,5 @@
 # config for sql-migrate for local development https://github.com/rubenv/sql-migrate
-local-development:
+development:
   dialect: postgres
   datasource: host=localhost port=5432 dbname=anti-brute-force user=anti-brute-force password=anti-brute-force sslmode=disable
   dir: migrations
