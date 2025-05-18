@@ -25,16 +25,18 @@ func main() {
 		syscall.SIGQUIT,
 		syscall.SIGHUP,
 	)
-	defer cancel()
 
 	logger := initLogger()
 
+	// Panic handler should be the last to execute
 	defer func() {
 		if r := recover(); r != nil {
 			logger.Error("app panic", zap.Any("panic", r), zap.Stack("stack"))
 			os.Exit(1)
 		}
 	}()
+
+	defer cancel()
 
 	cfg, err := config.New()
 	if err != nil {
@@ -52,18 +54,14 @@ func main() {
 
 	defer func() {
 		logger.Info("Closing resources...")
-		err = loginBuckets.Close(ctx)
-		if err != nil {
+
+		if err := loginBuckets.Close(ctx); err != nil {
 			logger.Error("Failed to close login buckets", zap.Error(err))
 		}
-
-		err = passwordBuckets.Close(ctx)
-		if err != nil {
+		if err := passwordBuckets.Close(ctx); err != nil {
 			logger.Error("Failed to close password buckets", zap.Error(err))
 		}
-
-		err = ipBuckets.Close(ctx)
-		if err != nil {
+		if err := ipBuckets.Close(ctx); err != nil {
 			logger.Error("Failed to close IP buckets", zap.Error(err))
 		}
 
@@ -91,20 +89,21 @@ func main() {
 	select {
 	case err = <-errCh:
 		logger.Error("Server failed", zap.Error(err))
+		return
 	case <-ctx.Done():
 		logger.Info("Shutdown signal received")
 	}
 
-	// Создаем контекст с таймаутом для graceful shutdown
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownCancel()
 
 	logger.Info("Shutting down server...")
 	if err := srv.Stop(shutdownCtx); err != nil {
 		logger.Error("Server forced to shutdown", zap.Error(err))
-	} else {
-		logger.Info("Server exited properly")
+		return
 	}
+
+	logger.Info("Server exited properly")
 }
 
 func initLogger() *zap.Logger {

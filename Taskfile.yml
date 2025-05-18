@@ -87,7 +87,7 @@ tasks:
     desc: "run unit tests"
     cmds:
       - go clean --testcache
-      - go test -race `go list ./... | grep -v test/` -coverprofile=.coverage.out
+      - go test -race $(go list ./... | grep -v "github.com/vagudza/anti-brute-force/test") -coverprofile=.coverage.out
       - go tool cover -func=.coverage.out | tail -n1
 
   proto-gen:

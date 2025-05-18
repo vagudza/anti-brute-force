@@ -111,31 +111,57 @@ func (s *Service) ResetBucket(ctx context.Context, login, ip string) error {
 		if err := s.loginBuckets.Reset(ctx, login); err != nil {
 			return fmt.Errorf("login bucket reset error: %w", err)
 		}
+		s.logger.Info("login bucket reset", zap.String("login", login))
 	}
 
 	if ip != "" {
 		if err := s.ipBuckets.Reset(ctx, ip); err != nil {
 			return fmt.Errorf("IP bucket reset error: %w", err)
 		}
+		s.logger.Info("IP bucket reset", zap.String("IP", ip))
 	}
 
 	return nil
 }
 
 func (s *Service) AddToWhitelist(ctx context.Context, subnet string) error {
-	return s.ipListService.AddToWhitelist(ctx, subnet)
+	err := s.ipListService.AddToWhitelist(ctx, subnet)
+	if err != nil {
+		return fmt.Errorf("whitelist add error: %w", err)
+	}
+
+	s.logger.Info("whitelist added", zap.String("subnet", subnet))
+	return nil
 }
 
 func (s *Service) RemoveFromWhitelist(ctx context.Context, subnet string) error {
-	return s.ipListService.RemoveFromWhitelist(ctx, subnet)
+	err := s.ipListService.RemoveFromWhitelist(ctx, subnet)
+	if err != nil {
+		return fmt.Errorf("whitelist remove error: %w", err)
+	}
+
+	s.logger.Info("whitelist removed", zap.String("subnet", subnet))
+	return nil
 }
 
 func (s *Service) AddToBlacklist(ctx context.Context, subnet string) error {
-	return s.ipListService.AddToBlacklist(ctx, subnet)
+	err := s.ipListService.AddToBlacklist(ctx, subnet)
+	if err != nil {
+		return fmt.Errorf("blacklist add error: %w", err)
+	}
+
+	s.logger.Info("blacklist added", zap.String("subnet", subnet))
+	return nil
 }
 
 func (s *Service) RemoveFromBlacklist(ctx context.Context, subnet string) error {
-	return s.ipListService.RemoveFromBlacklist(ctx, subnet)
+	err := s.ipListService.RemoveFromBlacklist(ctx, subnet)
+	if err != nil {
+		return fmt.Errorf("blacklist remove error: %w", err)
+	}
+
+	s.logger.Info("blacklist removed", zap.String("subnet", subnet))
+	return nil
 }
 
 func validateCheckAuth(login, password, ip string) error {

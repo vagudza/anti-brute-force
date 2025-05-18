@@ -25,7 +25,6 @@ func (s *Server) CheckAuth(ctx context.Context, req *pb.CheckAuthRequest) (*pb.C
 	return &pb.CheckAuthResponse{Ok: false}, nil
 }
 
-// ResetBucket resets the bucket by login and IP
 func (s *Server) ResetBucket(ctx context.Context, req *pb.ResetBucketRequest) (*pb.EmptyResponse, error) {
 	if err := s.limiterService.ResetBucket(ctx, req.Login, req.Ip); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
