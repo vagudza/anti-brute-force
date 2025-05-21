@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package antibruteforce;
+
+option go_package = "github.com/username/anti-bruteforce/api/proto";
+
+// AntiBruteforce service for protection against brute-force attacks
+service AntiBruteforce {
+  // CheckAuth verifies an authentication attempt
+  rpc CheckAuth(CheckAuthRequest) returns (CheckAuthResponse);
+
+  // ResetBucket resets the bucket by login and IP
+  rpc ResetBucket(ResetBucketRequest) returns (EmptyResponse);
+
+  // AddToBlacklist adds a subnet to the blacklist
+  rpc AddToBlacklist(IPSubnetRequest) returns (EmptyResponse);
+
+  // RemoveFromBlacklist removes a subnet from the blacklist
+  rpc RemoveFromBlacklist(IPSubnetRequest) returns (EmptyResponse);
+
+  // AddToWhitelist adds a subnet to the whitelist
+  rpc AddToWhitelist(IPSubnetRequest) returns (EmptyResponse);
+
+  // RemoveFromWhitelist removes a subnet from the whitelist
+  rpc RemoveFromWhitelist(IPSubnetRequest) returns (EmptyResponse);
+
+  // GetBlacklist retrieves all subnets from the blacklist
+  rpc GetBlacklist(EmptyRequest) returns (IPSubnetListResponse);
+
+  // GetWhitelist retrieves all subnets from the whitelist
+  rpc GetWhitelist(EmptyRequest) returns (IPSubnetListResponse);
+}
+
+// CheckAuthRequest is a request for authentication verification
+message CheckAuthRequest {
+  string login = 1;
+  string password = 2;
+  string ip = 3;
+}
+
+// CheckAuthResponse is a response for authentication verification
+message CheckAuthResponse {
+  bool ok = 1;
+}
+
+// ResetBucketRequest is a request to reset the bucket
+message ResetBucketRequest {
+  string login = 1;
+  string ip = 2;
+}
+
+// IPSubnetRequest is a request for subnet management
+message IPSubnetRequest {
+  string subnet = 1; // CIDR format, e.g. "192.168.1.0/24"
+}
+
+// IPSubnetListResponse is a list of subnets
+message IPSubnetListResponse {
+  repeated string subnets = 1; // list of subnets in CIDR format
+}
+
+// EmptyRequest is an empty request
+message EmptyRequest {}
+
+// EmptyResponse is an empty response
+message EmptyResponse {}

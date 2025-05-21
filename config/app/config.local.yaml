@@ -1,0 +1,26 @@
+env: "docker"
+
+limiters:
+  login:
+    maxAttemptsPerMinute: 10   # N
+    cleanupInterval: 1m        # how often to clean up the bucket
+    ttl: 10m                   # max lifetime for the bucket if it's not used
+  password:
+    maxAttemptsPerMinute: 10  # M
+    cleanupInterval: 1m
+    ttl: 10m
+  ip:
+    maxAttemptsPerMinute: 10 # K
+    cleanupInterval: 1m
+    ttl: 10m
+
+grpc:
+  port: 13013
+
+postgres:
+  database: anti-brute-force
+  username: anti-brute-force
+  password: anti-brute-force
+  host: localhost
+  port: 5432
+  sslmode: disable

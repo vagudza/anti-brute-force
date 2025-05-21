@@ -1,0 +1,128 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  # Go env.
+  GOBIN: $(pwd)/bin
+  CONFIG_PATH: config/app/config.local.yaml
+  DB_CONFIG_PATH: config/app/dbconfig.yaml
+
+  # Lib versions.
+  GOMOCK_VERSION: v0.3.4
+  GOLANGCI_LINT_VERSION: v1.61.0
+  GOFUMPT_VERSION: v0.7.0
+  SQL_MIGRATE_VERSION: v1.2.0
+
+tasks:
+  install-tools:
+    desc: "install tools"
+    cmds:
+      - GOBIN={{.GOBIN}} go install -v github.com/matryer/moq@{{.GOMOCK_VERSION}}
+      - GOBIN={{.GOBIN}} go install -v github.com/golangci/golangci-lint/cmd/golangci-lint@{{.GOLANGCI_LINT_VERSION}}
+      - GOBIN={{.GOBIN}} go install -v mvdan.cc/gofumpt@{{.GOFUMPT_VERSION}}
+      - GOBIN={{.GOBIN}} go install -v github.com/rubenv/sql-migrate/...@{{.SQL_MIGRATE_VERSION}}
+    silent: true
+
+  fmt:
+    desc: "format code"
+    deps: [ install-tools ]
+    cmds:
+      - |
+        {{.GOBIN}}/gofumpt -w -l .
+
+  lint:
+    desc: "lint code"
+    deps: [ install-tools ]
+    cmds:
+      - |
+        {{.GOBIN}}/golangci-lint run --timeout 2m --fix --concurrency 4 ./...
+
+  pretty:
+    desc: "prettify code in engine and loans"
+    cmds:
+      - task: fmt
+      - task: lint
+
+  migrations-new:
+    desc: "create a new migration"
+    aliases: [ migrations-new ]
+    deps: [ install-tools ]
+    cmds:
+      - |
+        {{.GOBIN}}/sql-migrate new -config={{.DB_CONFIG_PATH}} -env="development" {{.CLI_ARGS}}
+
+  migrations-up:
+    desc: "apply all migrations"
+    aliases: [ migrations-up ]
+    deps: [ install-tools ]
+    cmds:
+      - |
+        {{.GOBIN}}/sql-migrate up -config={{.DB_CONFIG_PATH}} -env="development"
+
+  migrations-down:
+    desc: "undo the last applied migration"
+    aliases: [ migrations-up ]
+    deps: [ install-tools ]
+    cmds:
+      - |
+        {{.GOBIN}}/sql-migrate down -config={{.DB_CONFIG_PATH}} -env="development"
+
+  infra-up:
+    desc: "start postgres container"
+    aliases: [ infra-up ]
+    cmds:
+      - |
+        docker compose -f deployments/docker-compose/docker-compose.local.yml up --remove-orphans --detach --wait {{.CLI_ARGS}}
+
+  run-app:
+    desc: "start app for isolation tests"
+    aliases: [ run-service ]
+    cmds:
+      - |
+        CONFIG_PATH={{.CONFIG_PATH}} \
+        go run cmd/app/main.go
+
+  test:
+    desc: "run unit tests"
+    cmds:
+      - go clean --testcache
+      - go test -race $(go list ./... | grep -v "github.com/vagudza/anti-brute-force/test") -coverprofile=.coverage.out
+      - go tool cover -func=.coverage.out | tail -n1
+
+  proto-gen:
+    desc: "generate proto files"
+    cmds:
+      - |
+        protoc --go_out=. --go_opt=paths=source_relative \
+        --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+        api/proto/antibruteforce.proto
+
+  build-cli:
+    desc: "build CLI client"
+    cmds:
+      - go build -o bin/abf-cli ./cmd/abf-cli
+
+  install-cli:
+    desc: "install CLI client"
+    cmds:
+      - go install ./cmd/abf-cli
+
+  run:
+    desc: "run application in docker"
+    cmds:
+      - |
+        docker compose -f deployments/docker-compose/docker-compose.ci.yml up --build -d
+
+  down:
+    desc: "stop and remove containers"
+    cmds:
+      - |
+        docker compose -f deployments/docker-compose/docker-compose.ci.yml down
+
+  ci:
+    desc: "run CI checks"
+    cmds:
+      - task: lint
+      - task: test
+      - task: build

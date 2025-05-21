@@ -1,0 +1,43 @@
+.gradle
+.gradle/
+
+.coverage.out
+/out
+
+__debug_bin
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+
+.run
+### VS Code ###
+.vscode/
+.cursor/
+__debug_*
+
+### Mac ###
+.DS_Store
+
+### Logs ###
+*.log
+
+### Compose volumes ###
+.shared
+
+### Binary files ###
+/bin
+
+### Golang ###
+/vendor
