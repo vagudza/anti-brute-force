@@ -65,6 +65,28 @@ func (s *Server) RemoveFromWhitelist(ctx context.Context, req *pb.IPSubnetReques
 	return &pb.EmptyResponse{}, nil
 }
 
+func (s *Server) GetWhitelist(ctx context.Context, _ *pb.EmptyRequest) (*pb.IPSubnetListResponse, error) {
+	subnets, err := s.limiterService.GetWhitelist(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &pb.IPSubnetListResponse{
+		Subnets: subnets,
+	}, nil
+}
+
+func (s *Server) GetBlacklist(ctx context.Context, _ *pb.EmptyRequest) (*pb.IPSubnetListResponse, error) {
+	subnets, err := s.limiterService.GetBlacklist(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &pb.IPSubnetListResponse{
+		Subnets: subnets,
+	}, nil
+}
+
 func mapCheckAuthErrors(err error) error {
 	switch {
 	case errors.Is(err, app.ErrEmptyLogin),

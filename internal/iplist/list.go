@@ -17,10 +17,12 @@ type ServiceClient interface {
 	AddToWhitelist(ctx context.Context, subnet string) error
 	RemoveFromWhitelist(ctx context.Context, subnet string) error
 	ContainsInWhitelist(ctx context.Context, ip string) (bool, error)
+	GetWhitelist(ctx context.Context) ([]string, error)
 
 	AddToBlacklist(ctx context.Context, subnet string) error
 	RemoveFromBlacklist(ctx context.Context, subnet string) error
 	ContainsInBlacklist(ctx context.Context, ip string) (bool, error)
+	GetBlacklist(ctx context.Context) ([]string, error)
 }
 
 type Service struct {
@@ -79,4 +81,12 @@ func (s *Service) ContainsInBlacklist(ctx context.Context, ip string) (bool, err
 	}
 
 	return s.repo.IsIPInBlacklist(ctx, ip)
+}
+
+func (s *Service) GetWhitelist(ctx context.Context) ([]string, error) {
+	return s.repo.GetWhitelist(ctx)
+}
+
+func (s *Service) GetBlacklist(ctx context.Context) ([]string, error) {
+	return s.repo.GetBlacklist(ctx)
 }

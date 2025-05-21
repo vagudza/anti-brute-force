@@ -13,10 +13,12 @@ type Repository interface {
 	AddSubnetToWhitelist(ctx context.Context, subnet string) error
 	RemoveSubnetFromWhitelist(ctx context.Context, subnet string) error
 	IsIPInWhitelist(ctx context.Context, ip string) (bool, error)
+	GetWhitelist(ctx context.Context) ([]string, error)
 
 	AddSubnetToBlacklist(ctx context.Context, subnet string) error
 	RemoveSubnetFromBlacklist(ctx context.Context, subnet string) error
 	IsIPInBlacklist(ctx context.Context, ip string) (bool, error)
+	GetBlacklist(ctx context.Context) ([]string, error)
 }
 
 type Storage struct {
@@ -97,4 +99,60 @@ func (s *Storage) IsIPInBlacklist(ctx context.Context, ip string) (bool, error) 
 	var exists bool
 	err := s.pool.QueryRow(ctx, query, ip).Scan(&exists)
 	return exists, err
+}
+
+func (s *Storage) GetWhitelist(ctx context.Context) ([]string, error) {
+	query := `
+		SELECT subnet::text
+		FROM whitelist
+		ORDER BY created_at DESC
+	`
+	rows, err := s.pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query whitelist: %w", err)
+	}
+	defer rows.Close()
+
+	var subnets []string
+	for rows.Next() {
+		var subnet string
+		if err := rows.Scan(&subnet); err != nil {
+			return nil, fmt.Errorf("failed to scan whitelist subnet: %w", err)
+		}
+		subnets = append(subnets, subnet)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating whitelist rows: %w", err)
+	}
+
+	return subnets, nil
+}
+
+func (s *Storage) GetBlacklist(ctx context.Context) ([]string, error) {
+	query := `
+		SELECT subnet::text
+		FROM blacklist
+		ORDER BY created_at DESC
+	`
+	rows, err := s.pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query blacklist: %w", err)
+	}
+	defer rows.Close()
+
+	var subnets []string
+	for rows.Next() {
+		var subnet string
+		if err := rows.Scan(&subnet); err != nil {
+			return nil, fmt.Errorf("failed to scan blacklist subnet: %w", err)
+		}
+		subnets = append(subnets, subnet)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating blacklist rows: %w", err)
+	}
+
+	return subnets, nil
 }
