@@ -5,7 +5,7 @@ version: '3'
 vars:
   # Go env.
   GOBIN: $(pwd)/bin
-  CONFIG_PATH: config/app/config.yaml
+  CONFIG_PATH: config/app/config.local.yaml
   DB_CONFIG_PATH: config/app/dbconfig.yaml
 
   # Lib versions.
@@ -101,9 +101,28 @@ tasks:
   build-cli:
     desc: "build CLI client"
     cmds:
-      - go build -o bin/abf-cli ./pkg/cli
+      - go build -o bin/abf-cli ./cmd/abf-cli
 
   install-cli:
     desc: "install CLI client"
     cmds:
-      - go install ./pkg/cli
+      - go install ./cmd/abf-cli
+
+  run:
+    desc: "run application in docker"
+    cmds:
+      - |
+        docker compose -f deployments/docker-compose/docker-compose.ci.yml up --build -d
+
+  down:
+    desc: "stop and remove containers"
+    cmds:
+      - |
+        docker compose -f deployments/docker-compose/docker-compose.ci.yml down
+
+  ci:
+    desc: "run CI checks"
+    cmds:
+      - task: lint
+      - task: test
+      - task: build
