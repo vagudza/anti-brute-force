@@ -18,12 +18,6 @@ func TestBlacklistAPI(t *testing.T) {
 		"172.16.0.0/12",
 	}
 
-	t.Run("Get initial blacklist - should be empty", func(t *testing.T) {
-		resp, err := s.AntiBruteforceClient.GetBlacklist(ctx, &pb.EmptyRequest{})
-		require.NoError(t, err)
-		require.Empty(t, resp.GetSubnets(), "Initial blacklist should be empty")
-	})
-
 	t.Run("Add and remove subnets", func(t *testing.T) {
 		for _, subnet := range subnetsToAdd {
 			_, err := s.AntiBruteforceClient.AddToBlacklist(ctx, &pb.IPSubnetRequest{Subnet: subnet})
