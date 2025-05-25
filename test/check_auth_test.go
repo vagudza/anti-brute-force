@@ -20,7 +20,7 @@ func TestCheckAuth_validations(t *testing.T) {
 	ctx, s := suitex.New(t)
 
 	t.Run("empty login", func(t *testing.T) {
-		resp, err := s.AntiBrutforceClient.CheckAuth(ctx, &pb.CheckAuthRequest{
+		resp, err := s.AntiBruteforceClient.CheckAuth(ctx, &pb.CheckAuthRequest{
 			Login:    "",
 			Password: "test123",
 			Ip:       "192.168.1.1",
@@ -32,7 +32,7 @@ func TestCheckAuth_validations(t *testing.T) {
 	})
 
 	t.Run("empty password", func(t *testing.T) {
-		resp, err := s.AntiBrutforceClient.CheckAuth(ctx, &pb.CheckAuthRequest{
+		resp, err := s.AntiBruteforceClient.CheckAuth(ctx, &pb.CheckAuthRequest{
 			Login:    "testuser",
 			Password: "",
 			Ip:       "192.168.1.1",
@@ -44,7 +44,7 @@ func TestCheckAuth_validations(t *testing.T) {
 	})
 
 	t.Run("empty ip", func(t *testing.T) {
-		resp, err := s.AntiBrutforceClient.CheckAuth(ctx, &pb.CheckAuthRequest{
+		resp, err := s.AntiBruteforceClient.CheckAuth(ctx, &pb.CheckAuthRequest{
 			Login:    "testuser",
 			Password: "password123",
 			Ip:       "",
@@ -56,7 +56,7 @@ func TestCheckAuth_validations(t *testing.T) {
 	})
 
 	t.Run("invalid ip", func(t *testing.T) {
-		resp, err := s.AntiBrutforceClient.CheckAuth(ctx, &pb.CheckAuthRequest{
+		resp, err := s.AntiBruteforceClient.CheckAuth(ctx, &pb.CheckAuthRequest{
 			Login:    "testuser",
 			Password: "password123",
 			Ip:       "invalid.ip.address",
@@ -68,7 +68,7 @@ func TestCheckAuth_validations(t *testing.T) {
 	})
 
 	t.Run("ip with invalid format", func(t *testing.T) {
-		resp, err := s.AntiBrutforceClient.CheckAuth(ctx, &pb.CheckAuthRequest{
+		resp, err := s.AntiBruteforceClient.CheckAuth(ctx, &pb.CheckAuthRequest{
 			Login:    "testuser",
 			Password: "password123",
 			Ip:       "256.256.256.256",
@@ -101,7 +101,7 @@ func TestCheckAuth(t *testing.T) {
 				Ip:       generateRandomIP(t),
 			}
 
-			resp, err := s.AntiBrutforceClient.CheckAuth(ctx, req)
+			resp, err := s.AntiBruteforceClient.CheckAuth(ctx, req)
 			if i < M {
 				require.NoError(t, err)
 				require.NotNil(t, resp)
@@ -131,7 +131,7 @@ func TestCheckAuth(t *testing.T) {
 		subnet := fmt.Sprintf("%s.%s.%s.0/24", ipParts[0], ipParts[1], ipParts[2])
 
 		// Add subnet to whitelist
-		_, err := s.AntiBrutforceClient.AddToWhitelist(ctx, &pb.IPSubnetRequest{
+		_, err := s.AntiBruteforceClient.AddToWhitelist(ctx, &pb.IPSubnetRequest{
 			Subnet: subnet,
 		})
 		require.NoError(t, err)
@@ -144,14 +144,14 @@ func TestCheckAuth(t *testing.T) {
 				Ip:       ip,
 			}
 
-			resp, err := s.AntiBrutforceClient.CheckAuth(ctx, req)
+			resp, err := s.AntiBruteforceClient.CheckAuth(ctx, req)
 			require.NoError(t, err)
 			require.NotNil(t, resp)
 			require.True(t, resp.Ok, "Request should be allowed because IP is in whitelist subnet")
 		}
 
 		// Cleanup
-		_, err = s.AntiBrutforceClient.RemoveFromWhitelist(ctx, &pb.IPSubnetRequest{
+		_, err = s.AntiBruteforceClient.RemoveFromWhitelist(ctx, &pb.IPSubnetRequest{
 			Subnet: subnet,
 		})
 		require.NoError(t, err)
@@ -165,7 +165,7 @@ func TestCheckAuth(t *testing.T) {
 		subnet := fmt.Sprintf("%s.%s.%s.0/24", ipParts[0], ipParts[1], ipParts[2])
 
 		// Add subnet to blacklist
-		_, err := s.AntiBrutforceClient.AddToBlacklist(ctx, &pb.IPSubnetRequest{
+		_, err := s.AntiBruteforceClient.AddToBlacklist(ctx, &pb.IPSubnetRequest{
 			Subnet: subnet,
 		})
 		require.NoError(t, err)
@@ -176,13 +176,13 @@ func TestCheckAuth(t *testing.T) {
 			Ip:       ip,
 		}
 
-		resp, err := s.AntiBrutforceClient.CheckAuth(ctx, req)
+		resp, err := s.AntiBruteforceClient.CheckAuth(ctx, req)
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.False(t, resp.Ok, "Request should be blocked because IP is in blacklist subnet")
 
 		// Cleanup
-		_, err = s.AntiBrutforceClient.RemoveFromBlacklist(ctx, &pb.IPSubnetRequest{
+		_, err = s.AntiBruteforceClient.RemoveFromBlacklist(ctx, &pb.IPSubnetRequest{
 			Subnet: subnet,
 		})
 		require.NoError(t, err)
@@ -194,7 +194,7 @@ func TestCheckAuth(t *testing.T) {
 
 		checkAuthWithLogin(ctx, N, t, s, login)
 
-		_, err := s.AntiBrutforceClient.ResetBucket(ctx, &pb.ResetBucketRequest{
+		_, err := s.AntiBruteforceClient.ResetBucket(ctx, &pb.ResetBucketRequest{
 			Login: login,
 			Ip:    generateRandomIP(t),
 		})
@@ -210,7 +210,7 @@ func TestCheckAuth(t *testing.T) {
 
 		checkAuthWithIP(ctx, K, t, s, ip)
 
-		_, err := s.AntiBrutforceClient.ResetBucket(ctx, &pb.ResetBucketRequest{
+		_, err := s.AntiBruteforceClient.ResetBucket(ctx, &pb.ResetBucketRequest{
 			Login: generateRandomString(t),
 			Ip:    ip,
 		})
@@ -235,7 +235,7 @@ func checkAuthWithLogin(
 			Ip:       generateRandomIP(t),
 		}
 
-		resp, err := s.AntiBrutforceClient.CheckAuth(ctx, req)
+		resp, err := s.AntiBruteforceClient.CheckAuth(ctx, req)
 
 		if i < N {
 			require.NoError(t, err)
@@ -263,7 +263,7 @@ func checkAuthWithIP(
 			Ip:       ip,
 		}
 
-		resp, err := s.AntiBrutforceClient.CheckAuth(ctx, req)
+		resp, err := s.AntiBruteforceClient.CheckAuth(ctx, req)
 		if i < K {
 			require.NoError(t, err)
 			require.NotNil(t, resp)

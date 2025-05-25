@@ -44,6 +44,19 @@ tasks:
       - task: fmt
       - task: lint
 
+  infra-up:
+    desc: "start postgres container"
+    aliases: [ infra-up ]
+    cmds:
+      - |
+        docker compose -f deployments/docker-compose/docker-compose.local.yml up --remove-orphans --detach --wait {{.CLI_ARGS}}
+
+  infra-down:
+    desc: "stop and remove local infrastructure containers"
+    cmds:
+      - |
+        docker compose -f deployments/docker-compose/docker-compose.local.yml down
+
   migrations-new:
     desc: "create a new migration"
     aliases: [ migrations-new ]
@@ -68,16 +81,14 @@ tasks:
       - |
         {{.GOBIN}}/sql-migrate down -config={{.DB_CONFIG_PATH}} -env="development"
 
-  infra-up:
-    desc: "start postgres container"
-    aliases: [ infra-up ]
+  build:
+    desc: "build application"
     cmds:
-      - |
-        docker compose -f deployments/docker-compose/docker-compose.local.yml up --remove-orphans --detach --wait {{.CLI_ARGS}}
+      - go build -o {{.GOBIN}}/app ./cmd/app/main.go
 
-  run-app:
-    desc: "start app for isolation tests"
-    aliases: [ run-service ]
+  run:
+    desc: "run application (not in docker)"
+    aliases: [ run-app ]
     cmds:
       - |
         CONFIG_PATH={{.CONFIG_PATH}} \
@@ -89,6 +100,13 @@ tasks:
       - go clean --testcache
       - go test -race $(go list ./... | grep -v "github.com/vagudza/anti-brute-force/test") -coverprofile=.coverage.out
       - go tool cover -func=.coverage.out | tail -n1
+
+  integration-test:
+    desc: "run integration tests from /test directory"
+    cmds:
+      - go clean --testcache
+      - go test -race ./test/... -coverprofile=.integration-coverage.out
+      - go tool cover -func=.integration-coverage.out | tail -n1
 
   proto-gen:
     desc: "generate proto files"
@@ -108,13 +126,13 @@ tasks:
     cmds:
       - go install ./cmd/abf-cli
 
-  run:
+  docker-up:
     desc: "run application in docker"
     cmds:
       - |
         docker compose -f deployments/docker-compose/docker-compose.ci.yml up --build -d
 
-  down:
+  docker-down:
     desc: "stop and remove containers"
     cmds:
       - |

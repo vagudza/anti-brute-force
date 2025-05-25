@@ -7,6 +7,6 @@ import (
 )
 
 type Suite struct {
-	T                   *testing.T
-	AntiBrutforceClient pb.AntiBruteforceClient
+	T                    *testing.T
+	AntiBruteforceClient pb.AntiBruteforceClient
 }

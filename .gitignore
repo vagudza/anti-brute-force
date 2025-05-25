@@ -2,6 +2,7 @@
 .gradle/
 
 .coverage.out
+.integration-coverage.out
 /out
 
 __debug_bin

@@ -17,8 +17,8 @@ import (
 var factory *suiteFactory
 
 type suiteFactory struct {
-	antiBrutforceClient pb.AntiBruteforceClient
-	cc                  *grpc.ClientConn
+	antiBruteforceClient pb.AntiBruteforceClient
+	cc                   *grpc.ClientConn
 }
 
 func (f *suiteFactory) newSuite(t *testing.T) (context.Context, *Suite) {
@@ -29,8 +29,8 @@ func (f *suiteFactory) newSuite(t *testing.T) (context.Context, *Suite) {
 	ctx, cancelCtx := context.WithTimeout(context.Background(), defaultTimeout)
 
 	suite := &Suite{
-		T:                   t,
-		AntiBrutforceClient: f.antiBrutforceClient,
+		T:                    t,
+		AntiBruteforceClient: f.antiBruteforceClient,
 	}
 
 	t.Cleanup(func() {
@@ -64,8 +64,8 @@ func InitSuiteFactory() error {
 	}
 
 	factory = &suiteFactory{
-		antiBrutforceClient: pb.NewAntiBruteforceClient(cc),
-		cc:                  cc,
+		antiBruteforceClient: pb.NewAntiBruteforceClient(cc),
+		cc:                   cc,
 	}
 
 	return nil
