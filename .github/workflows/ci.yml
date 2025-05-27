@@ -1,0 +1,83 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    name: run-golangci-linter
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
+      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
+      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23.8'
+          cache: true
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: 'v1.61.0'
+          args: --timeout=5m
+      - name: Run golangci-lint
+        run: golangci-lint run ./...
+
+  build:
+    name: Build
+    needs: [lint]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23.8'
+          cache: true
+      - name: Build
+        run: go build -v ./cmd/app 
+
+  unit-test:
+    name: run-unit-tests
+    needs: [lint]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23.8'
+          cache: true
+      - name: Run Unit Tests
+        run: go test -race -count 10 ./internal/...
+
+  integration-test:
+    name: run-integration-tests
+    needs: [unit-test, build]
+    runs-on: ubuntu-latest
+    steps: 
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23.8'
+          cache: true
+      - name: Start dependencies
+        run: |
+          docker-compose -f deployments/docker-compose/docker-compose.ci.yml up -d
+          # Wait for app to be ready
+          timeout 30s bash -c 'until docker-compose -f deployments/docker-compose/docker-compose.ci.yml logs app | grep -q "Server started"; do sleep 1; done'
+      - name: Run Integration Tests
+        run: go test -race -count 1 ./test/...
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: anti-brute-force
+          GRPC_HOST: localhost
+          GRPC_PORT: 13013
+      - name: Stop dependencies
+        if: always()
+        run: docker-compose -f deployments/docker-compose/docker-compose.ci.yml down -v

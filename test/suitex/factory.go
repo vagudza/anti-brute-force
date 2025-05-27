@@ -7,9 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ilyakaznacheev/cleanenv"
 	pb "github.com/vagudza/anti-brute-force/api/proto"
-	"github.com/vagudza/anti-brute-force/internal/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -47,16 +45,13 @@ func New(t *testing.T) (context.Context, *Suite) {
 }
 
 func InitSuiteFactory() error {
-	const defaultConfigFile = "../config/app/config.local.yaml"
-	var cfg config.AppConfig
-
-	err := cleanenv.ReadConfig(defaultConfigFile, &cfg)
+	cfg, err := NewTestConfig()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read config: %w", err)
 	}
 
 	cc, err := grpc.NewClient(
-		fmt.Sprintf("localhost:%s", cfg.Grpc.Port),
+		fmt.Sprintf("%s:%s", cfg.GRPC.Host, cfg.GRPC.Port),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
@@ -72,8 +67,10 @@ func InitSuiteFactory() error {
 }
 
 func Cleanup() {
-	err := factory.cc.Close()
-	if err != nil {
-		log.Println(err)
+	if factory != nil && factory.cc != nil {
+		err := factory.cc.Close()
+		if err != nil {
+			log.Println(err)
+		}
 	}
 }
