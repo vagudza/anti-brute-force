@@ -14,11 +14,13 @@ type Repository interface {
 	RemoveSubnetFromWhitelist(ctx context.Context, subnet string) error
 	IsIPInWhitelist(ctx context.Context, ip string) (bool, error)
 	GetWhitelist(ctx context.Context) ([]string, error)
+	ClearWhiteList(ctx context.Context) error
 
 	AddSubnetToBlacklist(ctx context.Context, subnet string) error
 	RemoveSubnetFromBlacklist(ctx context.Context, subnet string) error
 	IsIPInBlacklist(ctx context.Context, ip string) (bool, error)
 	GetBlacklist(ctx context.Context) ([]string, error)
+	ClearBlackList(ctx context.Context) error
 }
 
 type Storage struct {
@@ -155,4 +157,20 @@ func (s *Storage) GetBlacklist(ctx context.Context) ([]string, error) {
 	}
 
 	return subnets, nil
+}
+
+func (s *Storage) ClearWhiteList(ctx context.Context) error {
+	query := `
+		DELETE FROM whitelist
+	`
+	_, err := s.pool.Exec(ctx, query)
+	return err
+}
+
+func (s *Storage) ClearBlackList(ctx context.Context) error {
+	query := `
+		DELETE FROM blacklist
+	`
+	_, err := s.pool.Exec(ctx, query)
+	return err
 }

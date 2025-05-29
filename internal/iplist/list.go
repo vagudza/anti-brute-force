@@ -3,6 +3,7 @@ package iplist
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/netip"
 
 	"github.com/vagudza/anti-brute-force/internal/storage"
@@ -18,11 +19,13 @@ type ServiceClient interface {
 	RemoveFromWhitelist(ctx context.Context, subnet string) error
 	ContainsInWhitelist(ctx context.Context, ip string) (bool, error)
 	GetWhitelist(ctx context.Context) ([]string, error)
+	ClearWhitelist(ctx context.Context) error
 
 	AddToBlacklist(ctx context.Context, subnet string) error
 	RemoveFromBlacklist(ctx context.Context, subnet string) error
 	ContainsInBlacklist(ctx context.Context, ip string) (bool, error)
 	GetBlacklist(ctx context.Context) ([]string, error)
+	ClearBlackList(ctx context.Context) error
 }
 
 type Service struct {
@@ -37,7 +40,7 @@ func NewService(repo storage.Repository) *Service {
 
 func (s *Service) AddToWhitelist(ctx context.Context, subnet string) error {
 	if _, err := netip.ParsePrefix(subnet); err != nil {
-		return ErrInvalidSubnet
+		return fmt.Errorf("%w: %s", ErrInvalidSubnet, subnet)
 	}
 
 	return s.repo.AddSubnetToWhitelist(ctx, subnet)
@@ -45,7 +48,7 @@ func (s *Service) AddToWhitelist(ctx context.Context, subnet string) error {
 
 func (s *Service) RemoveFromWhitelist(ctx context.Context, subnet string) error {
 	if _, err := netip.ParsePrefix(subnet); err != nil {
-		return ErrInvalidSubnet
+		return fmt.Errorf("%w: %s", ErrInvalidSubnet, subnet)
 	}
 
 	return s.repo.RemoveSubnetFromWhitelist(ctx, subnet)
@@ -61,7 +64,7 @@ func (s *Service) ContainsInWhitelist(ctx context.Context, ip string) (bool, err
 
 func (s *Service) AddToBlacklist(ctx context.Context, subnet string) error {
 	if _, err := netip.ParsePrefix(subnet); err != nil {
-		return ErrInvalidSubnet
+		return fmt.Errorf("%w: %s", ErrInvalidSubnet, subnet)
 	}
 
 	return s.repo.AddSubnetToBlacklist(ctx, subnet)
@@ -69,7 +72,7 @@ func (s *Service) AddToBlacklist(ctx context.Context, subnet string) error {
 
 func (s *Service) RemoveFromBlacklist(ctx context.Context, subnet string) error {
 	if _, err := netip.ParsePrefix(subnet); err != nil {
-		return ErrInvalidSubnet
+		return fmt.Errorf("%w: %s", ErrInvalidSubnet, subnet)
 	}
 
 	return s.repo.RemoveSubnetFromBlacklist(ctx, subnet)
@@ -89,4 +92,12 @@ func (s *Service) GetWhitelist(ctx context.Context) ([]string, error) {
 
 func (s *Service) GetBlacklist(ctx context.Context) ([]string, error) {
 	return s.repo.GetBlacklist(ctx)
+}
+
+func (s *Service) ClearWhitelist(ctx context.Context) error {
+	return s.repo.ClearWhiteList(ctx)
+}
+
+func (s *Service) ClearBlackList(ctx context.Context) error {
+	return s.repo.ClearBlackList(ctx)
 }

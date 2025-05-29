@@ -26,10 +26,12 @@ type LimiterService interface {
 	AddToWhitelist(ctx context.Context, subnet string) error
 	RemoveFromWhitelist(ctx context.Context, subnet string) error
 	GetWhitelist(ctx context.Context) ([]string, error)
+	ClearWhitelist(ctx context.Context) error
 
 	AddToBlacklist(ctx context.Context, subnet string) error
 	RemoveFromBlacklist(ctx context.Context, subnet string) error
 	GetBlacklist(ctx context.Context) ([]string, error)
+	ClearBlacklist(ctx context.Context) error
 }
 
 type Service struct {
@@ -185,6 +187,26 @@ func (s *Service) GetBlacklist(ctx context.Context) ([]string, error) {
 
 	s.logger.Debug("blacklist retrieved", zap.Strings("subnets", subnets))
 	return subnets, nil
+}
+
+func (s *Service) ClearWhitelist(ctx context.Context) error {
+	err := s.ipListService.ClearWhitelist(ctx)
+	if err != nil {
+		return fmt.Errorf("whitelist clear error: %w", err)
+	}
+
+	s.logger.Info("whitelist cleared")
+	return nil
+}
+
+func (s *Service) ClearBlacklist(ctx context.Context) error {
+	err := s.ipListService.ClearBlackList(ctx)
+	if err != nil {
+		return fmt.Errorf("blacklist clear error: %w", err)
+	}
+
+	s.logger.Info("blacklist cleared")
+	return nil
 }
 
 func validateCheckAuth(login, password, ip string) error {

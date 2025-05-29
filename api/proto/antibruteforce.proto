@@ -29,6 +29,12 @@ service AntiBruteforce {
 
   // GetWhitelist retrieves all subnets from the whitelist
   rpc GetWhitelist(EmptyRequest) returns (IPSubnetListResponse);
+
+  // ClearBlacklist clears the blacklist
+  rpc ClearBlacklist(EmptyRequest) returns (EmptyResponse);
+
+  // ClearWhitelist clears the whitelist
+  rpc ClearWhitelist(EmptyRequest) returns (EmptyResponse);
 }
 
 // CheckAuthRequest is a request for authentication verification

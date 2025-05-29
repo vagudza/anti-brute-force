@@ -87,6 +87,22 @@ func (s *Server) GetBlacklist(ctx context.Context, _ *pb.EmptyRequest) (*pb.IPSu
 	}, nil
 }
 
+func (s *Server) ClearWhitelist(ctx context.Context, _ *pb.EmptyRequest) (*pb.EmptyResponse, error) {
+	if err := s.limiterService.ClearWhitelist(ctx); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &pb.EmptyResponse{}, nil
+}
+
+func (s *Server) ClearBlacklist(ctx context.Context, _ *pb.EmptyRequest) (*pb.EmptyResponse, error) {
+	if err := s.limiterService.ClearBlacklist(ctx); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &pb.EmptyResponse{}, nil
+}
+
 func mapCheckAuthErrors(err error) error {
 	switch {
 	case errors.Is(err, app.ErrEmptyLogin),

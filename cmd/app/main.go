@@ -55,13 +55,13 @@ func main() {
 	defer func() {
 		logger.Info("Closing resources...")
 
-		if err := loginBuckets.Close(ctx); err != nil {
+		if err = loginBuckets.Close(ctx); err != nil {
 			logger.Error("Failed to close login buckets", zap.Error(err))
 		}
-		if err := passwordBuckets.Close(ctx); err != nil {
+		if err = passwordBuckets.Close(ctx); err != nil {
 			logger.Error("Failed to close password buckets", zap.Error(err))
 		}
-		if err := ipBuckets.Close(ctx); err != nil {
+		if err = ipBuckets.Close(ctx); err != nil {
 			logger.Error("Failed to close IP buckets", zap.Error(err))
 		}
 
@@ -81,7 +81,7 @@ func main() {
 	errCh := make(chan error, 1)
 	go func() {
 		logger.Info("Starting server", zap.String("port", cfg.Grpc.Port))
-		if err := srv.Start(); err != nil {
+		if err = srv.Start(); err != nil {
 			errCh <- fmt.Errorf("server error: %w", err)
 		}
 	}()

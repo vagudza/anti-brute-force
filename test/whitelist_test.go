@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
 	pb "github.com/vagudza/anti-brute-force/api/proto"
 	"github.com/vagudza/anti-brute-force/test/suitex"
 )
@@ -12,10 +13,15 @@ import (
 func TestWhitelistAPI(t *testing.T) {
 	ctx, s := suitex.New(t)
 
-	subnetsToAdd := []string{
-		"192.168.1.0/24",
-		"10.0.0.0/8",
-		"172.16.0.0/12",
+	// Clean blacklist before tests
+	_, err := s.AntiBruteforceClient.ClearWhitelist(ctx, &pb.EmptyRequest{})
+	require.NoError(t, err)
+
+	const subnetsCount = 5
+	subnetsToAdd := make([]string, 0, subnetsCount)
+
+	for range subnetsCount {
+		subnetsToAdd = append(subnetsToAdd, generateRandomSubnet(t))
 	}
 
 	t.Run("Add and remove subnets", func(t *testing.T) {

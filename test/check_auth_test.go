@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	mrand "math/rand"
 	"strings"
 	"testing"
 
@@ -18,6 +19,12 @@ import (
 
 func TestCheckAuth_validations(t *testing.T) {
 	ctx, s := suitex.New(t)
+
+	// Clean black and white lists before tests
+	_, err := s.AntiBruteforceClient.ClearBlacklist(ctx, &pb.EmptyRequest{})
+	require.NoError(t, err)
+	_, err = s.AntiBruteforceClient.ClearWhitelist(ctx, &pb.EmptyRequest{})
+	require.NoError(t, err)
 
 	t.Run("empty login", func(t *testing.T) {
 		resp, err := s.AntiBruteforceClient.CheckAuth(ctx, &pb.CheckAuthRequest{
@@ -83,6 +90,12 @@ func TestCheckAuth_validations(t *testing.T) {
 func TestCheckAuth(t *testing.T) {
 	ctx, s := suitex.New(t)
 
+	// Clean black and white lists before tests
+	_, err := s.AntiBruteforceClient.ClearBlacklist(ctx, &pb.EmptyRequest{})
+	require.NoError(t, err)
+	_, err = s.AntiBruteforceClient.ClearWhitelist(ctx, &pb.EmptyRequest{})
+	require.NoError(t, err)
+
 	t.Run("check auth for specific login", func(t *testing.T) {
 		const N = 10 // max attempts per minute for login from config
 		login := generateRandomString(t)
@@ -144,8 +157,8 @@ func TestCheckAuth(t *testing.T) {
 				Ip:       ip,
 			}
 
-			resp, err := s.AntiBruteforceClient.CheckAuth(ctx, req)
-			require.NoError(t, err)
+			resp, errResp := s.AntiBruteforceClient.CheckAuth(ctx, req)
+			require.NoError(t, errResp)
 			require.NotNil(t, resp)
 			require.True(t, resp.Ok, "Request should be allowed because IP is in whitelist subnet")
 		}
@@ -288,4 +301,30 @@ func generateRandomIP(t *testing.T) string {
 	_, err := rand.Read(b)
 	require.NoError(t, err)
 	return fmt.Sprintf("%d.%d.%d.%d", b[0], b[1], b[2], b[3])
+}
+
+func generateRandomSubnet(t *testing.T) string {
+	// Generate random IP
+	b := make([]byte, 4)
+	_, err := rand.Read(b)
+	require.NoError(t, err)
+
+	// Generate random CIDR mask between 8 and 30
+	mask := mrand.Intn(23) + 8 // 8-30
+
+	bitsToZero := 32 - mask
+	bytesToZero := bitsToZero / 8
+	remainingBits := bitsToZero % 8
+
+	for i := 4 - bytesToZero; i < 4; i++ {
+		b[i] = 0
+	}
+
+	if remainingBits > 0 && 4-bytesToZero-1 >= 0 {
+		idx := 4 - bytesToZero - 1
+		mask := byte(0xFF << remainingBits)
+		b[idx] &= mask
+	}
+
+	return fmt.Sprintf("%d.%d.%d.%d/%d", b[0], b[1], b[2], b[3], mask)
 }
