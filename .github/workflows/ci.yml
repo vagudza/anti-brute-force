@@ -6,6 +6,8 @@ jobs:
   lint:
     name: run-golangci-linter
     runs-on: ubuntu-latest
+    # Skip duplicate job for PR from the same repository
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     steps:
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
       - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
@@ -28,6 +30,7 @@ jobs:
     name: Build
     needs: [lint]
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     steps:
       - uses: actions/checkout@v4
       - name: Set up Go
@@ -42,6 +45,7 @@ jobs:
     name: run-unit-tests
     needs: [lint]
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     steps:
       - uses: actions/checkout@v4
       - name: Set up Go
@@ -56,6 +60,7 @@ jobs:
     name: run-integration-tests
     needs: [unit-test, build]
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     steps: 
       - uses: actions/checkout@v4
       - name: Set up Go
@@ -65,9 +70,9 @@ jobs:
           cache: true
       - name: Start dependencies
         run: |
-          docker-compose -f deployments/docker-compose/docker-compose.ci.yml up -d
+          docker compose -f deployments/docker-compose/docker-compose.ci.yml up -d
           # Wait for app to be ready
-          timeout 30s bash -c 'until docker-compose -f deployments/docker-compose/docker-compose.ci.yml logs app | grep -q "Server started"; do sleep 1; done'
+          timeout 30s bash -c 'until docker compose -f deployments/docker-compose/docker-compose.ci.yml logs app | grep -q "Server started"; do sleep 1; done'
       - name: Run Integration Tests
         run: go test -race -count 1 ./test/...
         env:
@@ -80,4 +85,4 @@ jobs:
           GRPC_PORT: 13013
       - name: Stop dependencies
         if: always()
-        run: docker-compose -f deployments/docker-compose/docker-compose.ci.yml down -v
+        run: docker compose -f deployments/docker-compose/docker-compose.ci.yml down -v
