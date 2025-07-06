@@ -75,6 +75,12 @@ jobs:
           docker compose -f deployments/docker-compose/docker-compose.yml --profile all up --build -d
           # Wait for postgres to be healthy (app will start automatically after)
           timeout 30s bash -c 'until docker compose -f deployments/docker-compose/docker-compose.yml ps postgres | grep -q "healthy"; do sleep 2; done'
+      - name: Install sql-migrate
+        run: |
+          go install github.com/rubenv/sql-migrate/...@v1.2.0
+      - name: Apply migrations
+        run: |
+          sql-migrate up -config=config/app/dbconfig.yaml -env="development"
       - name: Run Integration Tests
         run: go test -race -count 1 ./test/...
       - name: Stop dependencies
