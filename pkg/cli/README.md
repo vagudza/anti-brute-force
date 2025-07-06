@@ -29,6 +29,9 @@ abf-cli --help
 abf-cli bucket --help
 abf-cli whitelist --help
 abf-cli blacklist --help
+
+# Check CLI version
+abf-cli version
 ```
 
 ### Bucket Management
@@ -44,6 +47,8 @@ abf-cli bucket reset --login user@example.com
 
 # Reset all buckets for specific IP
 abf-cli bucket reset --ip 192.168.1.100
+
+# Note: At least one of --login or --ip must be specified
 ```
 
 ### Whitelist Management
@@ -93,7 +98,16 @@ abf-cli --host 192.168.1.10 --port 8080 whitelist list
 # Multiple commands with same configuration
 abf-cli --host 192.168.1.10 --port 8080 blacklist add --subnet 10.0.0.0/8
 abf-cli --host 192.168.1.10 --port 8080 whitelist list
+
+# Connect to remote server
+abf-cli --host api.example.com --port 443 bucket reset --login admin --ip 10.0.0.1
 ```
+
+### Connection Details
+
+- **Protocol**: gRPC with insecure credentials
+- **Timeout**: 5 seconds for all operations
+- **Connection**: Established for each command execution
 
 ## Command Structure
 
@@ -109,5 +123,31 @@ The CLI uses a hierarchical command structure:
   - `add` - Add subnet to blacklist
   - `remove` - Remove subnet from blacklist
   - `list` - List all blacklisted subnets
+- `version` - Print CLI version
 
-Each command has its own flags and options that can be viewed using the `--help` flag. 
+Each command has its own flags and options that can be viewed using the `--help` flag.
+
+## Examples
+
+### Development Environment
+```bash
+# Local development with default settings
+abf-cli whitelist add --subnet 127.0.0.0/8
+abf-cli blacklist list
+```
+
+### Production Environment
+```bash
+# Production server
+abf-cli --host anti-brute-force.example.com --port 443 whitelist add --subnet 10.0.0.0/8
+abf-cli --host anti-brute-force.example.com --port 443 bucket reset --login admin --ip 192.168.1.100
+```
+
+### Troubleshooting
+```bash
+# Check if server is reachable
+abf-cli --host localhost --port 13013 version
+
+# Reset buckets after false positives
+abf-cli bucket reset --login user@example.com --ip 192.168.1.50
+``` 

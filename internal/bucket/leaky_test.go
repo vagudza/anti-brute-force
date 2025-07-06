@@ -13,7 +13,10 @@ const (
 	actionReset action = "reset"
 )
 
+//nolint:funlen // it's a test function with multiple scenarios
 func TestLeakyBucket(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		capacity   int

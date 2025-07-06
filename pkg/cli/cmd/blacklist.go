@@ -9,19 +9,19 @@ import (
 	"github.com/vagudza/anti-brute-force/pkg/cli/client"
 )
 
-// blacklistCmd represents the blacklist command
 var blacklistCmd = &cobra.Command{
-	Use:   "blacklist",
-	Short: "Manage IP blacklist",
-	Long:  `Manage IP blacklist - add, remove and list blacklisted subnets`,
+	Use:           "blacklist",
+	Short:         "Manage IP blacklist",
+	Long:          `Manage IP blacklist - add, remove and list blacklisted subnets`,
+	SilenceUsage:  true,
+	SilenceErrors: true,
 }
 
-// blacklistAddCmd represents the blacklist add command
 var blacklistAddCmd = &cobra.Command{
 	Use:   "add",
 	Short: "Add subnet to blacklist",
 	Long:  `Add subnet to blacklist in CIDR format (e.g. 192.168.1.0/24)`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		if subnet == "" {
 			return fmt.Errorf("subnet must be specified")
 		}
@@ -44,12 +44,11 @@ var blacklistAddCmd = &cobra.Command{
 	},
 }
 
-// blacklistRemoveCmd represents the blacklist remove command
 var blacklistRemoveCmd = &cobra.Command{
 	Use:   "remove",
 	Short: "Remove subnet from blacklist",
 	Long:  `Remove subnet from blacklist in CIDR format (e.g. 192.168.1.0/24)`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		if subnet == "" {
 			return fmt.Errorf("subnet must be specified")
 		}
@@ -72,12 +71,11 @@ var blacklistRemoveCmd = &cobra.Command{
 	},
 }
 
-// blacklistListCmd represents the blacklist list command
 var blacklistListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List blacklisted subnets",
 	Long:  `List all subnets in blacklist`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		cli, err := client.New(host, port)
 		if err != nil {
 			return fmt.Errorf("failed to create client: %w", err)

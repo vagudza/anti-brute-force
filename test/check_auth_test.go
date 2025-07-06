@@ -5,26 +5,19 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	mrand "math/rand"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
 	pb "github.com/vagudza/anti-brute-force/api/proto"
 	"github.com/vagudza/anti-brute-force/test/suitex"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestCheckAuth_validations(t *testing.T) {
 	ctx, s := suitex.New(t)
-
-	// Clean black and white lists before tests
-	_, err := s.AntiBruteforceClient.ClearBlacklist(ctx, &pb.EmptyRequest{})
-	require.NoError(t, err)
-	_, err = s.AntiBruteforceClient.ClearWhitelist(ctx, &pb.EmptyRequest{})
-	require.NoError(t, err)
+	clearLists(ctx, t, s)
 
 	t.Run("empty login", func(t *testing.T) {
 		resp, err := s.AntiBruteforceClient.CheckAuth(ctx, &pb.CheckAuthRequest{
@@ -89,56 +82,32 @@ func TestCheckAuth_validations(t *testing.T) {
 
 func TestCheckAuth(t *testing.T) {
 	ctx, s := suitex.New(t)
+	clearLists(ctx, t, s)
 
-	// Clean black and white lists before tests
-	_, err := s.AntiBruteforceClient.ClearBlacklist(ctx, &pb.EmptyRequest{})
-	require.NoError(t, err)
-	_, err = s.AntiBruteforceClient.ClearWhitelist(ctx, &pb.EmptyRequest{})
-	require.NoError(t, err)
+	// set values from app config
+	N := s.Cfg.Limiters.Login.MaxAttemptsPerMinute
+	M := s.Cfg.Limiters.Password.MaxAttemptsPerMinute
+	K := s.Cfg.Limiters.IP.MaxAttemptsPerMinute
 
 	t.Run("check auth for specific login", func(t *testing.T) {
-		const N = 10 // max attempts per minute for login from config
 		login := generateRandomString(t)
-
-		checkAuthWithLogin(ctx, N, t, s, login)
+		checkAuthWithLogin(ctx, t, N, s, login)
 	})
 
 	t.Run("check auth for specific password (reverse brute force)", func(t *testing.T) {
-		const M = 10 // max attempts per minute for password from config
 		password := generateRandomString(t)
-
-		for i := 0; i < M+1; i++ {
-			req := &pb.CheckAuthRequest{
-				Login:    generateRandomString(t),
-				Password: password,
-				Ip:       generateRandomIP(t),
-			}
-
-			resp, err := s.AntiBruteforceClient.CheckAuth(ctx, req)
-			if i < M {
-				require.NoError(t, err)
-				require.NotNil(t, resp)
-				require.True(t, resp.Ok)
-			} else {
-				require.NoError(t, err)
-				require.NotNil(t, resp)
-				require.False(t, resp.Ok)
-			}
-		}
+		checkAuthWithPassword(ctx, t, M, s, password)
 	})
 
 	t.Run("check auth for specific ip", func(t *testing.T) {
-		const K = 10 // max attempts per minute for IP from config
 		ip := generateRandomIP(t)
-
-		checkAuthWithIP(ctx, K, t, s, ip)
+		checkAuthWithIP(ctx, t, K, s, ip)
 	})
 
 	t.Run("check auth with ip in whitelist", func(t *testing.T) {
-		const K = 10 // max attempts per minute for IP from config
-
 		// Generate random IP and create subnet that includes this IP
 		ip := generateRandomIP(t)
+
 		// Convert last octet to 0 and add /24 mask to create subnet
 		ipParts := strings.Split(ip, ".")
 		subnet := fmt.Sprintf("%s.%s.%s.0/24", ipParts[0], ipParts[1], ipParts[2])
@@ -173,6 +142,7 @@ func TestCheckAuth(t *testing.T) {
 	t.Run("check auth with ip in blacklist", func(t *testing.T) {
 		// Generate random IP and create subnet that includes this IP
 		ip := generateRandomIP(t)
+
 		// Convert last octet to 0 and add /24 mask to create subnet
 		ipParts := strings.Split(ip, ".")
 		subnet := fmt.Sprintf("%s.%s.%s.0/24", ipParts[0], ipParts[1], ipParts[2])
@@ -202,10 +172,8 @@ func TestCheckAuth(t *testing.T) {
 	})
 
 	t.Run("check auth with specific login and reset bucket", func(t *testing.T) {
-		const N = 10 // max attempts per minute for login from config
 		login := generateRandomString(t)
-
-		checkAuthWithLogin(ctx, N, t, s, login)
+		checkAuthWithLogin(ctx, t, N, s, login)
 
 		_, err := s.AntiBruteforceClient.ResetBucket(ctx, &pb.ResetBucketRequest{
 			Login: login,
@@ -214,14 +182,12 @@ func TestCheckAuth(t *testing.T) {
 		require.NoError(t, err)
 
 		// check auth after reset bucket
-		checkAuthWithLogin(ctx, N, t, s, login)
+		checkAuthWithLogin(ctx, t, N, s, login)
 	})
 
 	t.Run("check auth for specific ip and reset bucket", func(t *testing.T) {
-		const K = 10 // max attempts per minute for IP from config
 		ip := generateRandomIP(t)
-
-		checkAuthWithIP(ctx, K, t, s, ip)
+		checkAuthWithIP(ctx, t, K, s, ip)
 
 		_, err := s.AntiBruteforceClient.ResetBucket(ctx, &pb.ResetBucketRequest{
 			Login: generateRandomString(t),
@@ -230,18 +196,34 @@ func TestCheckAuth(t *testing.T) {
 		require.NoError(t, err)
 
 		// check auth after reset bucket
-		checkAuthWithIP(ctx, K, t, s, ip)
+		checkAuthWithIP(ctx, t, K, s, ip)
 	})
+}
+
+func clearLists(
+	ctx context.Context,
+	t *testing.T,
+	s *suitex.Suite,
+) {
+	t.Helper()
+	t.Log("clearing whitelist and blacklist before test")
+
+	_, err := s.AntiBruteforceClient.ClearBlacklist(ctx, &pb.EmptyRequest{})
+	require.NoError(t, err)
+	_, err = s.AntiBruteforceClient.ClearWhitelist(ctx, &pb.EmptyRequest{})
+	require.NoError(t, err)
 }
 
 func checkAuthWithLogin(
 	ctx context.Context,
-	N int,
 	t *testing.T,
+	n int,
 	s *suitex.Suite,
 	login string,
 ) {
-	for i := 0; i < N+1; i++ {
+	t.Helper()
+
+	for i := 0; i < n+1; i++ {
 		req := &pb.CheckAuthRequest{
 			Login:    login,
 			Password: generateRandomString(t),
@@ -250,7 +232,35 @@ func checkAuthWithLogin(
 
 		resp, err := s.AntiBruteforceClient.CheckAuth(ctx, req)
 
-		if i < N {
+		if i < n {
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			require.True(t, resp.Ok) // Expecting success for first n attempts
+		} else {
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			require.False(t, resp.Ok) // Expecting failure for the (n+1)th attempt
+		}
+	}
+}
+
+func checkAuthWithPassword(
+	ctx context.Context,
+	t *testing.T,
+	m int,
+	s *suitex.Suite,
+	password string,
+) {
+	t.Helper()
+	for i := 0; i < m+1; i++ {
+		req := &pb.CheckAuthRequest{
+			Login:    generateRandomString(t),
+			Password: password,
+			Ip:       generateRandomIP(t),
+		}
+
+		resp, err := s.AntiBruteforceClient.CheckAuth(ctx, req)
+		if i < m {
 			require.NoError(t, err)
 			require.NotNil(t, resp)
 			require.True(t, resp.Ok)
@@ -264,12 +274,14 @@ func checkAuthWithLogin(
 
 func checkAuthWithIP(
 	ctx context.Context,
-	K int,
 	t *testing.T,
+	k int,
 	s *suitex.Suite,
 	ip string,
 ) {
-	for i := 0; i < K+1; i++ {
+	t.Helper()
+
+	for i := 0; i < k+1; i++ {
 		req := &pb.CheckAuthRequest{
 			Login:    generateRandomString(t),
 			Password: generateRandomString(t),
@@ -277,7 +289,7 @@ func checkAuthWithIP(
 		}
 
 		resp, err := s.AntiBruteforceClient.CheckAuth(ctx, req)
-		if i < K {
+		if i < k {
 			require.NoError(t, err)
 			require.NotNil(t, resp)
 			require.True(t, resp.Ok)
@@ -290,6 +302,8 @@ func checkAuthWithIP(
 }
 
 func generateRandomString(t *testing.T) string {
+	t.Helper()
+
 	b := make([]byte, 20)
 	_, err := rand.Read(b)
 	require.NoError(t, err)
@@ -297,6 +311,8 @@ func generateRandomString(t *testing.T) string {
 }
 
 func generateRandomIP(t *testing.T) string {
+	t.Helper()
+
 	b := make([]byte, 4)
 	_, err := rand.Read(b)
 	require.NoError(t, err)
@@ -304,13 +320,20 @@ func generateRandomIP(t *testing.T) string {
 }
 
 func generateRandomSubnet(t *testing.T) string {
+	t.Helper()
+
 	// Generate random IP
 	b := make([]byte, 4)
 	_, err := rand.Read(b)
 	require.NoError(t, err)
 
-	// Generate random CIDR mask between 8 and 30
-	mask := mrand.Intn(23) + 8 // 8-30
+	// Generate random CIDR mask between 8 and 30 using crypto/rand
+	maskBytes := make([]byte, 8)
+	_, err = rand.Read(maskBytes)
+	require.NoError(t, err)
+
+	// Convert to int64 and get value in range 8-30
+	mask := int64(maskBytes[0])%23 + 8 // 8-30
 
 	bitsToZero := 32 - mask
 	bytesToZero := bitsToZero / 8

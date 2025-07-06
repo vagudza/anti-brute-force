@@ -11,19 +11,19 @@ import (
 
 var subnet string
 
-// whitelistCmd represents the whitelist command
 var whitelistCmd = &cobra.Command{
-	Use:   "whitelist",
-	Short: "Manage IP whitelist",
-	Long:  `Manage IP whitelist - add, remove and list whitelisted subnets`,
+	Use:           "whitelist",
+	Short:         "Manage IP whitelist",
+	Long:          `Manage IP whitelist - add, remove and list whitelisted subnets`,
+	SilenceUsage:  true,
+	SilenceErrors: true,
 }
 
-// whitelistAddCmd represents the whitelist add command
 var whitelistAddCmd = &cobra.Command{
 	Use:   "add",
 	Short: "Add subnet to whitelist",
 	Long:  `Add subnet to whitelist in CIDR format (e.g. 192.168.1.0/24)`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		if subnet == "" {
 			return fmt.Errorf("subnet must be specified")
 		}
@@ -46,12 +46,11 @@ var whitelistAddCmd = &cobra.Command{
 	},
 }
 
-// whitelistRemoveCmd represents the whitelist remove command
 var whitelistRemoveCmd = &cobra.Command{
 	Use:   "remove",
 	Short: "Remove subnet from whitelist",
 	Long:  `Remove subnet from whitelist in CIDR format (e.g. 192.168.1.0/24)`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		if subnet == "" {
 			return fmt.Errorf("subnet must be specified")
 		}
@@ -74,12 +73,11 @@ var whitelistRemoveCmd = &cobra.Command{
 	},
 }
 
-// whitelistListCmd represents the whitelist list command
 var whitelistListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List whitelisted subnets",
 	Long:  `List all subnets in whitelist`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		cli, err := client.New(host, port)
 		if err != nil {
 			return fmt.Errorf("failed to create client: %w", err)

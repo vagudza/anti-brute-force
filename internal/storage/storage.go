@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-
 	"github.com/vagudza/anti-brute-force/internal/config"
 )
 
@@ -21,6 +20,8 @@ type Repository interface {
 	IsIPInBlacklist(ctx context.Context, ip string) (bool, error)
 	GetBlacklist(ctx context.Context) ([]string, error)
 	ClearBlackList(ctx context.Context) error
+
+	Close(ctx context.Context) error
 }
 
 type Storage struct {
@@ -34,11 +35,6 @@ func NewStorage(ctx context.Context, cfg *config.PGConfig) (*Storage, error) {
 	}
 
 	return &Storage{pool: pool}, nil
-}
-
-func buildDSN(cfg *config.PGConfig) string {
-	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		cfg.Host, cfg.Port, cfg.Username, cfg.Password, cfg.Database, cfg.SSLMode)
 }
 
 func (s *Storage) AddSubnetToWhitelist(ctx context.Context, subnet string) error {
@@ -173,4 +169,16 @@ func (s *Storage) ClearBlackList(ctx context.Context) error {
 	`
 	_, err := s.pool.Exec(ctx, query)
 	return err
+}
+
+func (s *Storage) Close(_ context.Context) error {
+	if s.pool != nil {
+		s.pool.Close()
+	}
+	return nil
+}
+
+func buildDSN(cfg *config.PGConfig) string {
+	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		cfg.Host, cfg.Port, cfg.Username, cfg.Password, cfg.Database, cfg.SSLMode)
 }

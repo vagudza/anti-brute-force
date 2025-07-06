@@ -19,10 +19,12 @@ jobs:
           go-version: '1.23.8'
           cache: true
       - name: Install golangci-lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v4
         with:
-          version: 'v1.61.0'
+          version: v1.61.0
           args: --timeout=5m
+          skip-pkg-cache: true
+          skip-build-cache: true
       - name: Run golangci-lint
         run: golangci-lint run ./...
 
@@ -60,7 +62,7 @@ jobs:
     name: run-integration-tests
     needs: [unit-test, build]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: github.event_name == 'push' || github.pull_request.head.repo.full_name != github.repository
     steps: 
       - uses: actions/checkout@v4
       - name: Set up Go
@@ -70,19 +72,11 @@ jobs:
           cache: true
       - name: Start dependencies
         run: |
-          docker compose -f deployments/docker-compose/docker-compose.ci.yml up -d
-          # Wait for app to be ready
-          timeout 30s bash -c 'until docker compose -f deployments/docker-compose/docker-compose.ci.yml logs app | grep -q "Server started"; do sleep 1; done'
+          docker compose -f deployments/docker-compose/docker-compose.yml --profile all up --build -d
+          # Wait for postgres to be healthy (app will start automatically after)
+          timeout 30s bash -c 'until docker compose -f deployments/docker-compose/docker-compose.yml ps postgres | grep -q "healthy"; do sleep 2; done'
       - name: Run Integration Tests
         run: go test -race -count 1 ./test/...
-        env:
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: 5432
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: anti-brute-force
-          GRPC_HOST: localhost
-          GRPC_PORT: 13013
       - name: Stop dependencies
         if: always()
-        run: docker compose -f deployments/docker-compose/docker-compose.ci.yml down -v
+        run: docker compose -f deployments/docker-compose/docker-compose.yml --profile all down -v

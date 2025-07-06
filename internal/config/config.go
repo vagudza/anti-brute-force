@@ -18,25 +18,19 @@ type AppConfig struct {
 func New() (*AppConfig, error) {
 	var cfg AppConfig
 
-	// Priority order:
-	// 1. Environment variables
-	// 2. Config file (if specified via CONFIG_PATH)
-	// 3. Default values
-
 	// First try to load from config file if path is specified
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath != "" {
 		if err := cleanenv.ReadConfig(configPath, &cfg); err != nil {
 			return nil, fmt.Errorf("error reading config file: %w", err)
 		}
-	} else {
-		// Always read environment variables as they have highest priority
-		if err := cleanenv.ReadEnv(&cfg); err != nil {
-			return nil, fmt.Errorf("error reading env variables: %w", err)
-		}
 	}
 
-	// Validate config
+	// re-define values from environment variables (if exists)
+	if err := cleanenv.ReadEnv(&cfg); err != nil {
+		return nil, fmt.Errorf("error reading env variables: %w", err)
+	}
+
 	if err := validateConfig(&cfg); err != nil {
 		return nil, fmt.Errorf("config validation error: %w", err)
 	}

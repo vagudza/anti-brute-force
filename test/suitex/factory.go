@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"testing"
 	"time"
 
 	pb "github.com/vagudza/anti-brute-force/api/proto"
+	"github.com/vagudza/anti-brute-force/internal/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -15,19 +17,19 @@ import (
 var factory *suiteFactory
 
 type suiteFactory struct {
-	antiBruteforceClient pb.AntiBruteforceClient
+	cfg                  *config.AppConfig
 	cc                   *grpc.ClientConn
+	antiBruteforceClient pb.AntiBruteforceClient
 }
 
 func (f *suiteFactory) newSuite(t *testing.T) (context.Context, *Suite) {
 	t.Helper()
-	t.Parallel()
 
 	const defaultTimeout = 10 * time.Second
 	ctx, cancelCtx := context.WithTimeout(context.Background(), defaultTimeout)
 
 	suite := &Suite{
-		T:                    t,
+		Cfg:                  f.cfg,
 		AntiBruteforceClient: f.antiBruteforceClient,
 	}
 
@@ -45,13 +47,22 @@ func New(t *testing.T) (context.Context, *Suite) {
 }
 
 func InitSuiteFactory() error {
-	cfg, err := NewTestConfig()
+	// Set default config path for local run from IDE
+	// P.S. command "task integration-test" automatically sets CONFIG_PATH
+	if os.Getenv("CONFIG_PATH") == "" {
+		err := os.Setenv("CONFIG_PATH", "../config/app/config.local.yaml")
+		if err != nil {
+			return err
+		}
+	}
+
+	cfg, err := config.New()
 	if err != nil {
-		return fmt.Errorf("failed to read config: %w", err)
+		return err
 	}
 
 	cc, err := grpc.NewClient(
-		fmt.Sprintf("%s:%s", cfg.GRPC.Host, cfg.GRPC.Port),
+		fmt.Sprintf(":%s", cfg.Grpc.Port),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
@@ -59,8 +70,9 @@ func InitSuiteFactory() error {
 	}
 
 	factory = &suiteFactory{
-		antiBruteforceClient: pb.NewAntiBruteforceClient(cc),
+		cfg:                  cfg,
 		cc:                   cc,
+		antiBruteforceClient: pb.NewAntiBruteforceClient(cc),
 	}
 
 	return nil

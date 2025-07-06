@@ -14,19 +14,19 @@ var (
 	ip    string
 )
 
-// bucketCmd represents the bucket command
 var bucketCmd = &cobra.Command{
-	Use:   "bucket",
-	Short: "Manage rate limit buckets",
-	Long:  `Manage rate limit buckets for specific login/IP combinations`,
+	Use:           "bucket",
+	Short:         "Manage rate limit buckets",
+	Long:          `Manage rate limit buckets for specific login/IP combinations`,
+	SilenceUsage:  true,
+	SilenceErrors: true,
 }
 
-// resetCmd represents the reset command
 var resetCmd = &cobra.Command{
 	Use:   "reset",
 	Short: "Reset bucket for login/IP",
 	Long:  `Reset bucket for specific login/IP combination`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		if login == "" && ip == "" {
 			return fmt.Errorf("either login or IP must be specified")
 		}

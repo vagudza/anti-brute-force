@@ -5,9 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"go.uber.org/zap"
-
 	"github.com/vagudza/anti-brute-force/internal/config"
+	"go.uber.org/zap"
 )
 
 const cleanupInterval = 5 * time.Minute
@@ -68,7 +67,6 @@ func (s *MemoryBucketStorage) Close(_ context.Context) error {
 	return nil
 }
 
-// cleanup периодически удаляет устаревшие bucket-ы для предотвращения утечек памяти
 func (s *MemoryBucketStorage) cleanup() {
 	ticker := time.NewTicker(s.cleanupInterval)
 	defer ticker.Stop()
@@ -78,20 +76,18 @@ func (s *MemoryBucketStorage) cleanup() {
 		case <-ticker.C:
 			s.removeStale()
 		case <-s.stopCleanup:
-			s.logger.Info("Stopping cleanup goroutine")
+			s.logger.Info("stopping cleanup buckets goroutine")
 			return
 		}
 	}
 }
 
-// removeStale удаляет неактивные bucket-ы
+// removeStale removes inactive buckets.
 func (s *MemoryBucketStorage) removeStale() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.logger.Info("Removing stale buckets")
-
-	// Удаляем bucket-ы, которые не использовались дольше TTL
+	s.logger.Info("Removing buckets that not used longer than TTL")
 	now := time.Now()
 	for key, bucket := range s.buckets {
 		if now.Sub(bucket.lastLeakTime) > s.ttl {

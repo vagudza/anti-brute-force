@@ -49,13 +49,13 @@ tasks:
     aliases: [ infra-up ]
     cmds:
       - |
-        docker compose -f deployments/docker-compose/docker-compose.local.yml up --remove-orphans --detach --wait {{.CLI_ARGS}}
+        docker compose -f deployments/docker-compose/docker-compose.yml --profile infra up --remove-orphans --detach --wait {{.CLI_ARGS}}
 
   infra-down:
     desc: "stop and remove local infrastructure containers"
     cmds:
       - |
-        docker compose -f deployments/docker-compose/docker-compose.local.yml down
+        docker compose -f deployments/docker-compose/docker-compose.yml --profile infra down -v
 
   migrations-new:
     desc: "create a new migration"
@@ -105,7 +105,9 @@ tasks:
     desc: "run integration tests from /test directory"
     cmds:
       - go clean --testcache
-      - go test -race ./test/... -coverprofile=.integration-coverage.out
+      - |
+        CONFIG_PATH=../{{.CONFIG_PATH}} \
+        go test -race ./test/... -coverprofile=.integration-coverage.out
       - go tool cover -func=.integration-coverage.out | tail -n1
 
   proto-gen:
@@ -122,7 +124,7 @@ tasks:
       - go build -o bin/abf-cli ./cmd/abf-cli
 
   install-cli:
-    desc: "install CLI client"
+    desc: "install CLI client (compile /cmd/abf-cli and put it into GOBIN)"
     cmds:
       - go install ./cmd/abf-cli
 
@@ -130,13 +132,13 @@ tasks:
     desc: "run application in docker"
     cmds:
       - |
-        docker compose -f deployments/docker-compose/docker-compose.ci.yml up --build -d
+        docker compose -f deployments/docker-compose/docker-compose.yml --profile all up --build -d
 
   docker-down:
     desc: "stop and remove containers"
     cmds:
       - |
-        docker compose -f deployments/docker-compose/docker-compose.ci.yml down
+        docker compose -f deployments/docker-compose/docker-compose.yml --profile all down
 
   ci:
     desc: "run CI checks"

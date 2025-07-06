@@ -4,12 +4,11 @@ import (
 	"context"
 	"errors"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
 	pb "github.com/vagudza/anti-brute-force/api/proto"
 	"github.com/vagudza/anti-brute-force/internal/app"
 	"github.com/vagudza/anti-brute-force/internal/iplist"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (s *Server) CheckAuth(ctx context.Context, req *pb.CheckAuthRequest) (*pb.CheckAuthResponse, error) {

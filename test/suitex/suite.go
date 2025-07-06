@@ -1,12 +1,11 @@
 package suitex
 
 import (
-	"testing"
-
 	pb "github.com/vagudza/anti-brute-force/api/proto"
+	"github.com/vagudza/anti-brute-force/internal/config"
 )
 
 type Suite struct {
-	T                    *testing.T
+	Cfg                  *config.AppConfig
 	AntiBruteforceClient pb.AntiBruteforceClient
 }

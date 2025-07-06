@@ -3,12 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
-
-	"go.uber.org/zap"
 
 	"github.com/vagudza/anti-brute-force/internal/app"
 	"github.com/vagudza/anti-brute-force/internal/bucket"
@@ -16,10 +13,12 @@ import (
 	"github.com/vagudza/anti-brute-force/internal/iplist"
 	"github.com/vagudza/anti-brute-force/internal/storage"
 	"github.com/vagudza/anti-brute-force/internal/transport/grpc"
+	"go.uber.org/zap"
 )
 
 func main() {
-	ctx, cancel := signal.NotifyContext(context.Background(),
+	ctx, cancel := signal.NotifyContext(
+		context.Background(),
 		syscall.SIGINT,
 		syscall.SIGTERM,
 		syscall.SIGQUIT,
@@ -28,45 +27,26 @@ func main() {
 
 	logger := initLogger()
 
-	// Panic handler should be the last to execute
 	defer func() {
 		if r := recover(); r != nil {
-			logger.Error("app panic", zap.Any("panic", r), zap.Stack("stack"))
-			os.Exit(1)
+			logger.Fatal("app panic", zap.Any("panic", r), zap.Stack("stack"))
 		}
 	}()
-
 	defer cancel()
 
 	cfg, err := config.New()
 	if err != nil {
-		logger.Fatal("Failed to create config", zap.Error(err))
+		logger.Fatal("failed to create config", zap.Error(err))
 	}
 
 	pgStorage, err := storage.NewStorage(ctx, &cfg.Postgres)
 	if err != nil {
-		logger.Fatal("Failed to create storage", zap.Error(err))
+		logger.Fatal("failed to create storage", zap.Error(err))
 	}
 
 	loginBuckets := bucket.NewMemoryBucketStorage(&cfg.Limiters.Login, logger)
 	passwordBuckets := bucket.NewMemoryBucketStorage(&cfg.Limiters.Password, logger)
 	ipBuckets := bucket.NewMemoryBucketStorage(&cfg.Limiters.IP, logger)
-
-	defer func() {
-		logger.Info("Closing resources...")
-
-		if err = loginBuckets.Close(ctx); err != nil {
-			logger.Error("Failed to close login buckets", zap.Error(err))
-		}
-		if err = passwordBuckets.Close(ctx); err != nil {
-			logger.Error("Failed to close password buckets", zap.Error(err))
-		}
-		if err = ipBuckets.Close(ctx); err != nil {
-			logger.Error("Failed to close IP buckets", zap.Error(err))
-		}
-
-		logger.Info("Resources closed properly")
-	}()
 
 	ipListService := iplist.NewService(pgStorage)
 	service := app.NewService(
@@ -80,7 +60,7 @@ func main() {
 
 	errCh := make(chan error, 1)
 	go func() {
-		logger.Info("Starting server", zap.String("port", cfg.Grpc.Port))
+		logger.Info("starting server", zap.String("port", cfg.Grpc.Port))
 		if err = srv.Start(); err != nil {
 			errCh <- fmt.Errorf("server error: %w", err)
 		}
@@ -88,22 +68,41 @@ func main() {
 
 	select {
 	case err = <-errCh:
-		logger.Error("Server failed", zap.Error(err))
+		logger.Error("server failed", zap.Error(err))
 		return
 	case <-ctx.Done():
-		logger.Info("Shutdown signal received")
+		logger.Info("shutdown signal received")
 	}
 
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer shutdownCancel()
+	{
+		logger.Info("graceful shutdown: shutting down grpc server...")
 
-	logger.Info("Shutting down server...")
-	if err := srv.Stop(shutdownCtx); err != nil {
-		logger.Error("Server forced to shutdown", zap.Error(err))
-		return
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := srv.Stop(ctx); err != nil {
+			logger.Error("server forced to shutdown", zap.Error(err))
+			return
+		}
+
+		logger.Info("close buckets")
+		if err = loginBuckets.Close(ctx); err != nil {
+			logger.Error("failed to close login buckets", zap.Error(err))
+		}
+		if err = passwordBuckets.Close(ctx); err != nil {
+			logger.Error("failed to close password buckets", zap.Error(err))
+		}
+		if err = ipBuckets.Close(ctx); err != nil {
+			logger.Error("failed to close IP buckets", zap.Error(err))
+		}
+
+		logger.Info("close database connection")
+		if err = pgStorage.Close(ctx); err != nil {
+			logger.Error("failed to close database connection", zap.Error(err))
+		}
+
+		logger.Info("resources closed properly")
 	}
-
-	logger.Info("Server exited properly")
 }
 
 func initLogger() *zap.Logger {

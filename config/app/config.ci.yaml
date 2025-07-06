@@ -2,15 +2,15 @@ env: "ci"
 
 limiters:
   login:
-    maxAttemptsPerMinute: 10   # N
+    maxAttemptsPerMinute: 10   # N - number of login attempts per minute
     cleanupInterval: 1m        # how often to clean up the bucket
     ttl: 10m                   # max lifetime for the bucket if it's not used
   password:
-    maxAttemptsPerMinute: 10   # M
+    maxAttemptsPerMinute: 10   # M - number of password attempts per minute
     cleanupInterval: 1m
     ttl: 10m
   ip:
-    maxAttemptsPerMinute: 10   # K
+    maxAttemptsPerMinute: 10   # K - number of attempts per minute from a single IP
     cleanupInterval: 1m
     ttl: 10m
 
@@ -19,8 +19,8 @@ grpc:
 
 postgres:
   database: anti-brute-force
-  username: postgres
-  password: postgres
+  username: anti-brute-force
+  password: anti-brute-force
   host: postgres
   port: 5432
   sslmode: disable 

@@ -6,10 +6,9 @@ import (
 	"fmt"
 	"net"
 
-	"go.uber.org/zap"
-
 	"github.com/vagudza/anti-brute-force/internal/bucket"
 	"github.com/vagudza/anti-brute-force/internal/iplist"
+	"go.uber.org/zap"
 )
 
 var (

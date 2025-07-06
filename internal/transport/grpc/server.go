@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"net"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
-
 	pb "github.com/vagudza/anti-brute-force/api/proto"
 	"github.com/vagudza/anti-brute-force/internal/app"
 	"github.com/vagudza/anti-brute-force/internal/config"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 type Server struct {
@@ -33,16 +32,15 @@ func NewServer(limiterService app.LimiterService, cfg *config.GrpcConfig) *Serve
 	return s
 }
 
-// Start запускает gRPC сервер на указанном адресе
 func (s *Server) Start() error {
 	listener, err := net.Listen("tcp", ":"+s.cfg.Port)
 	if err != nil {
-		return fmt.Errorf("failed to listen: %v", err)
+		return fmt.Errorf("failed to listen: %w", err)
 	}
 
 	s.listener = listener
 	if err = s.server.Serve(listener); err != nil {
-		return fmt.Errorf("failed to serve: %v", err)
+		return fmt.Errorf("failed to serve: %w", err)
 	}
 
 	return nil

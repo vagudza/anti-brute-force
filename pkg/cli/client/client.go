@@ -31,7 +31,6 @@ func (c *Client) Close() error {
 	return c.conn.Close()
 }
 
-// ResetBucket resets bucket for login and IP
 func (c *Client) ResetBucket(ctx context.Context, login, ip string) error {
 	_, err := c.client.ResetBucket(ctx, &pb.ResetBucketRequest{
 		Login: login,
@@ -40,7 +39,6 @@ func (c *Client) ResetBucket(ctx context.Context, login, ip string) error {
 	return err
 }
 
-// AddToWhitelist adds subnet to whitelist
 func (c *Client) AddToWhitelist(ctx context.Context, subnet string) error {
 	_, err := c.client.AddToWhitelist(ctx, &pb.IPSubnetRequest{
 		Subnet: subnet,
@@ -48,7 +46,6 @@ func (c *Client) AddToWhitelist(ctx context.Context, subnet string) error {
 	return err
 }
 
-// RemoveFromWhitelist removes subnet from whitelist
 func (c *Client) RemoveFromWhitelist(ctx context.Context, subnet string) error {
 	_, err := c.client.RemoveFromWhitelist(ctx, &pb.IPSubnetRequest{
 		Subnet: subnet,
@@ -56,7 +53,6 @@ func (c *Client) RemoveFromWhitelist(ctx context.Context, subnet string) error {
 	return err
 }
 
-// GetWhitelist returns all subnets from whitelist
 func (c *Client) GetWhitelist(ctx context.Context) ([]string, error) {
 	resp, err := c.client.GetWhitelist(ctx, &pb.EmptyRequest{})
 	if err != nil {
@@ -65,7 +61,6 @@ func (c *Client) GetWhitelist(ctx context.Context) ([]string, error) {
 	return resp.Subnets, nil
 }
 
-// AddToBlacklist adds subnet to blacklist
 func (c *Client) AddToBlacklist(ctx context.Context, subnet string) error {
 	_, err := c.client.AddToBlacklist(ctx, &pb.IPSubnetRequest{
 		Subnet: subnet,
@@ -73,7 +68,6 @@ func (c *Client) AddToBlacklist(ctx context.Context, subnet string) error {
 	return err
 }
 
-// RemoveFromBlacklist removes subnet from blacklist
 func (c *Client) RemoveFromBlacklist(ctx context.Context, subnet string) error {
 	_, err := c.client.RemoveFromBlacklist(ctx, &pb.IPSubnetRequest{
 		Subnet: subnet,
@@ -81,7 +75,6 @@ func (c *Client) RemoveFromBlacklist(ctx context.Context, subnet string) error {
 	return err
 }
 
-// GetBlacklist returns all subnets from blacklist
 func (c *Client) GetBlacklist(ctx context.Context) ([]string, error) {
 	resp, err := c.client.GetBlacklist(ctx, &pb.EmptyRequest{})
 	if err != nil {
