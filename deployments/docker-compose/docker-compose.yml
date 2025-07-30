@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  app:
+    profiles: ["all"]
+    build:
+      context: ../..
+      dockerfile: build/Dockerfile
+    container_name: anti-brute-force
+    ports:
+      - "13013:13013"
+    environment:
+      - CONFIG_PATH=/app/config/app/config.ci.yaml
+      - ENV=ci
+    volumes:
+      - ../../config/app/config.ci.yaml:/app/config/app/config.ci.yaml:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "13013"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres:
+    profiles: ["all", "infra"]
+    image: postgres:16-alpine
+    container_name: anti-brute-force-postgres
+    environment:
+      POSTGRES_DB: anti-brute-force
+      POSTGRES_USER: anti-brute-force
+      POSTGRES_PASSWORD: anti-brute-force
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U anti-brute-force"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+    name: anti-brute-force-postgres-data
+
+networks:
+  app-network:
+    name: anti-brute-force-network 
